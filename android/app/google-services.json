@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "73510414994",
+    "project_id": "elite-hotel-26752",
+    "storage_bucket": "elite-hotel-26752.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:73510414994:android:51e4390b93549987ce544b",
+        "android_client_info": {
+          "package_name": "com.elite.hotel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAF0xU0m5jntIoxwE2EVucl9zxSWbh1u0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
