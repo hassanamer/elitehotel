@@ -10,11 +10,11 @@ class FrontDeskScreen extends StatefulWidget {
 class _FrontDeskScreenState extends State<FrontDeskScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CalendarController _calendarController = CalendarController();
-  DateTime selectedCheckInDate = DateTime.now();
+  DateTime selectedDate = DateTime.now();
   List<Map<String, dynamic>> allRooms = [];
+  List<Map<String, dynamic>> dailyReminders = [];
   String selectedFloor = 'All Floors';
   String selectedRoomType = 'All Types';
-  List<Map<String, dynamic>> dailyReminders = [];
 
   @override
   void initState() {
@@ -28,7 +28,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     setState(() {
       allRooms = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
     });
-    _updateRoomStatuses(); // Initial fetch for today
+    _updateRoomStatuses();
   }
 
   Future<void> _fetchDailyReminders() async {
@@ -39,33 +39,33 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
         .get();
 
     setState(() {
-      dailyReminders = snapshot.docs
-          .map((doc) {
+      dailyReminders = snapshot.docs.map((doc) {
         final notes = doc['notes'] as Map<String, dynamic>? ?? {};
         return {
+          'reservationId': doc.id,
           'room': doc['roomNumber'],
           'guestRequest': notes['text'] ?? 'No requests',
           'frequency': notes['frequency'] ?? 'Just Once',
           'checkInDate': (doc['checkInDate'] as Timestamp).toDate(),
+          'status': notes['status'] ?? 'Pending',
+          'assignedToHK': notes['assignedToHK'] ?? false,
         };
-      })
-          .where((reminder) {
+      }).where((reminder) {
         DateTime checkInDate = reminder['checkInDate'];
         bool isSameDayAsToday = checkInDate.year == DateTime.now().year &&
             checkInDate.month == DateTime.now().month &&
             checkInDate.day == DateTime.now().day;
 
         return reminder['frequency'] == 'Daily' || (reminder['frequency'] == 'Just Once' && isSameDayAsToday);
-      })
-          .toList();
+      }).toList();
     });
   }
 
   void _updateRoomStatuses() async {
     QuerySnapshot snapshot = await _firestore
         .collection('reservations')
-        .where('checkInDate', isLessThanOrEqualTo: selectedCheckInDate)
-        .where('checkOutDate', isGreaterThanOrEqualTo: selectedCheckInDate)
+        .where('checkInDate', isLessThanOrEqualTo: selectedDate)
+        .where('checkOutDate', isGreaterThanOrEqualTo: selectedDate)
         .get();
 
     List<String> occupiedRooms = snapshot.docs.map((doc) => doc['roomNumber'] as String).toList();
@@ -80,37 +80,18 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     });
   }
 
-  void _fetchRoomStatusForDate(DateTime date) {
-    setState(() {
-      selectedCheckInDate = date;
+  void _assignToHK(String reservationId) async {
+    await _firestore.collection('reservations').doc(reservationId).update({
+      'notes.assignedToHK': true,
     });
-    _updateRoomStatuses();
+    _fetchDailyReminders();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: Text('Front Desk'),
-          backgroundColor: const Color(0xFFDBB017),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Daily Guest Requests'),
-              Tab(text: 'Calendar & Rooms'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildCalendarAndRoomStatus(),
-            _buildDailyReminders(),
-          ],
-        ),
-      ),
-    );
+  void _updateRequestStatus(String reservationId, String newStatus) async {
+    await _firestore.collection('reservations').doc(reservationId).update({
+      'notes.status': newStatus,
+    });
+    _fetchDailyReminders();
   }
 
   Widget _buildDailyReminders() {
@@ -164,15 +145,45 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                       color: Colors.grey[600],
                     ),
                   ),
-                  trailing: Text(
-                    reminder['frequency'] == 'Daily'
-                        ? 'Daily'
-                        : 'Once',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
-                    ),
+                  trailing: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Replace IconButton with TextButton
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: reminder['assignedToHK'] ? Colors.green : const Color(0xFFDBB017),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          if (!reminder['assignedToHK']) {
+                            _assignToHK(reminder['reservationId']);
+                          }
+                        },
+                        child: Text(
+                          reminder['assignedToHK'] ? 'Assigned' : 'Assign to HK',
+                          style: TextStyle(fontSize: 18,color: Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 20,),
+                      DropdownButton<String>(
+                        value: reminder['status'],
+                        items: ['Pending', 'In Progress', 'Completed']
+                            .map((status) => DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(status),
+                        ))
+                            .toList(),
+                        onChanged: (newStatus) {
+                          if (newStatus != null) {
+                            _updateRequestStatus(reminder['reservationId'], newStatus);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -195,12 +206,46 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       ),
     );
   }
+  void _fetchRoomStatusForDate(DateTime date) {
+    setState(() {
+      selectedDate = date;
+    });
+    _updateRoomStatuses();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text('Front Desk'),
+          backgroundColor: const Color(0xFFDBB017),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Calendar & Rooms'),
+              Tab(text: 'Daily Guest Requests'),
+
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildCalendarAndRoomStatus(),
+            _buildDailyReminders(),
+
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildCalendarAndRoomStatus() {
     return Row(
       children: [
         Expanded(
-          flex: 2, // Adjust this flex to control the width ratio
+          flex: 2,
           child: Column(
             children: [
               Row(
@@ -213,7 +258,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                     },
                   ),
                   Text(
-                    '${selectedCheckInDate.year} - ${selectedCheckInDate.month}',
+                    '${selectedDate.year} - ${selectedDate.month}',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
@@ -240,7 +285,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
           ),
         ),
         Expanded(
-          flex: 1, // Adjust this flex to control the width ratio
+          flex: 1,
           child: _buildRoomList(),
         ),
       ],
@@ -262,8 +307,9 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
               return ListTile(
                 title: Text('Room ${room['roomNumber']}'),
                 subtitle: Text(room['status']),
-                tileColor:
-                room['status'] == 'Available' ? Colors.green[100] : Colors.red[100],
+                tileColor: room['status'] == 'Available'
+                    ? Colors.greenAccent.withOpacity(0.2)
+                    : Colors.redAccent.withOpacity(0.2),
               );
             },
           ),
@@ -273,16 +319,12 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
   }
 
   List<Appointment> _buildRoomStatusEvents() {
-    return allRooms
-        .where((room) =>
-    (selectedFloor == 'All Floors' || room['floor'] == selectedFloor) &&
-        (selectedRoomType == 'All Types' || room['roomType'] == selectedRoomType))
-        .map((room) {
+    return allRooms.map((room) {
       return Appointment(
-        startTime: selectedCheckInDate,
-        endTime: selectedCheckInDate,
-        subject: room['roomNumber'],
-        color: room['status'] == 'Available' ? Colors.green : Colors.red,
+        startTime: selectedDate,
+        endTime: selectedDate.add(Duration(hours: 1)),
+        subject: 'Room ${room['roomNumber']} - ${room['status']}',
+        color: room['status'] == 'Occupied' ? Colors.red : Colors.green,
       );
     }).toList();
   }

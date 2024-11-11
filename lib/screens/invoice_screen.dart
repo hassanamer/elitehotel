@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart'; // Import printing package
+import 'package:pdf/widgets.dart' as pw;
 class InvoiceScreen extends StatelessWidget {
   final String guestName;
   final String roomType;
@@ -63,8 +65,33 @@ class InvoiceScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Here you can call the print functionality if needed
+              onPressed: () async {
+                final pdf = pw.Document();
+
+                pdf.addPage(
+                  pw.Page(
+                    build: (pw.Context context) {
+                      return pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Invoice Details', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                          pw.SizedBox(height: 20),
+                          pw.Text('Guest Name: $guestName', style: pw.TextStyle(fontSize: 18)),
+                          pw.Text('Room Type: $roomType', style: pw.TextStyle(fontSize: 18)),
+                          pw.Text('Room Number: $roomNumber', style: pw.TextStyle(fontSize: 18)),
+                          pw.Text('Check-In Date: ${DateFormat('yyyy-MM-dd').format(checkInDate)}', style: pw.TextStyle(fontSize: 18)),
+                          pw.Text('Check-Out Date: ${DateFormat('yyyy-MM-dd').format(checkOutDate)}', style: pw.TextStyle(fontSize: 18)),
+                          pw.SizedBox(height: 10),
+                          pw.Text('Total Cost: \$${totalCost.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                          pw.Text('Amount Paid: \$${amountPaid.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 18)),
+                          pw.Text('Remaining Balance: \$${remainingBalance.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 18, color: PdfColors.red)),
+                        ],
+                      );
+                    },
+                  ),
+                );
+
+                await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
               },
               child: Text('Print Invoice'),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDBB017)),

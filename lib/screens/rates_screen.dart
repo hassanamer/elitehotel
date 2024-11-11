@@ -17,7 +17,6 @@ class _RatesScreenState extends State<RatesScreen> {
   void initState() {
     super.initState();
     _getUserAccountType();
-    _fetchRates();
   }
 
   Future<void> _getUserAccountType() async {
@@ -37,29 +36,34 @@ class _RatesScreenState extends State<RatesScreen> {
     }
   }
 
-  Future<void> _fetchRates() async {
-    QuerySnapshot ratesSnapshot = await _firestore.collection('rates').get();
+  Stream<List<Map<String, dynamic>>> _fetchRates() {
+    return FirebaseFirestore.instance
+        .collection('rates')
+        .snapshots()
+        .asyncMap((ratesSnapshot) async {
+      final List<Map<String, dynamic>> updatedRatesData = [];
 
-    ratesData = ratesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      QuerySnapshot roomSnapshot = await _firestore.collection('rooms').get();
 
-    for (var rate in ratesData) {
-      String roomType = rate['roomType'];
-      QuerySnapshot roomSnapshot = await _firestore.collection('rooms')
-          .where('roomType', isEqualTo: roomType)
-          .get();
+      for (var rateDoc in ratesSnapshot.docs) {
+        Map<String, dynamic> rate = rateDoc.data() as Map<String, dynamic>;
+        String roomType = rate['roomType'];
 
-      int availableRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
+        int availableRooms = roomSnapshot.docs
+            .where((doc) => doc['roomType'] == roomType && doc['status'] == 'Available')
+            .length;
 
-      rate['availability'] = availableRooms;
-    }
+        rate['availability'] = availableRooms;
+        updatedRatesData.add(rate);
+      }
 
-    setState(() {});
+      return updatedRatesData;
+    });
   }
 
   void _showRateDialog({Map<String, dynamic>? rate, String? docId}) {
     final packageController = TextEditingController(text: rate?['roomType'] ?? '');
-    final rateController = TextEditingController(text: rate?['rate'] ?? '');
-    final availabilityController = TextEditingController(text: (rate?['availability'] ?? 0).toString());
+    final rateController = TextEditingController(text: rate?['rate']?.toString() ?? '');
 
     showDialog(
       context: context,
@@ -72,14 +76,11 @@ class _RatesScreenState extends State<RatesScreen> {
                 TextField(
                   controller: packageController,
                   decoration: const InputDecoration(labelText: 'Package'),
+                  readOnly: docId != null,
                 ),
                 TextField(
                   controller: rateController,
                   decoration: const InputDecoration(labelText: 'Rate'),
-                ),
-                TextField(
-                  controller: availabilityController,
-                  decoration: const InputDecoration(labelText: 'Availability'),
                   keyboardType: TextInputType.number,
                 ),
               ],
@@ -90,22 +91,17 @@ class _RatesScreenState extends State<RatesScreen> {
               onPressed: () async {
                 String documentId = packageController.text;
 
-                DocumentSnapshot docSnapshot = await _firestore.collection('rates').doc(documentId).get();
-                if (docSnapshot.exists) {
-                  await _firestore.collection('rates').doc(documentId).update({
-                    'roomType': documentId,
-                    'rate': rateController.text,
-                    'availability': int.tryParse(availabilityController.text) ?? 0,
-                  });
-                } else {
+                if (docId == null) {
                   await _firestore.collection('rates').doc(documentId).set({
                     'roomType': documentId,
                     'rate': rateController.text,
-                    'availability': int.tryParse(availabilityController.text) ?? 0,
+                  });
+                } else {
+                  await _firestore.collection('rates').doc(docId).update({
+                    'rate': rateController.text,
                   });
                 }
 
-                _fetchRates();
                 Navigator.of(context).pop();
               },
               child: Text(docId == null ? 'Add' : 'Update'),
@@ -124,16 +120,14 @@ class _RatesScreenState extends State<RatesScreen> {
 
   void _editRate(String docId) {
     final rate = ratesData.firstWhere((rate) => rate['roomType'] == docId, orElse: () => {});
+    if (rate.isEmpty) {
+      print("Rate data not found for docId: $docId"); // Debug log
+    }
     _showRateDialog(rate: rate.isNotEmpty ? rate : null, docId: docId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredRatesData = ratesData.where((rate) {
-      return rate['roomType'] != null &&
-          rate['roomType']!.toString().toLowerCase().contains(searchQuery.toLowerCase());
-    }).toList();
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -174,75 +168,75 @@ class _RatesScreenState extends State<RatesScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Expanded(
-                //   flex: 1,
-                //   child: DropdownButtonFormField<String>(
-                //     value: 'All',
-                //     items: ['All', 'Available', 'Booked', 'Reserved', 'Waiting']
-                //         .map((status) => DropdownMenuItem(
-                //       value: status,
-                //       child: Text(status),
-                //     ))
-                //         .toList(),
-                //     onChanged: (value) {
-                //       // Implement filter functionality
-                //     },
-                //     decoration: InputDecoration(
-                //       labelText: 'Filter by Status',
-                //       border: OutlineInputBorder(
-                //         borderRadius: BorderRadius.circular(12.0),
-                //       ),
-                //     ),
-                //   ),
-                // ),
               ],
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith((states) => const Color(0xFFDBB017)),
-                    columnSpacing: 20.0,
-                    horizontalMargin: 12.0,
-                    columns: [
-                      const DataColumn(label: Text('Package', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('Availability', style: TextStyle(fontWeight: FontWeight.bold))),
-                      if (userAccountType == 'Admin' || userAccountType == 'Manager')
-                        const DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                    ],
-                    rows: filteredRatesData.map((rate) {
-                      String docId = rate['roomType'];
-                      return DataRow(cells: [
-                        DataCell(Text(rate['roomType'] ?? 'N/A')),
-                        DataCell(Text(rate['rate'] ?? 'N/A')),
-                        DataCell(Text((rate['availability'] ?? 0).toString())),
-                        if (userAccountType == 'Admin' || userAccountType == 'Manager')
-                          DataCell(
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _editRate(docId),
-                            ),
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _fetchRates(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (snapshot.hasData) {
+                    ratesData = snapshot.data!;
+                  } else {
+                    ratesData = [];
+                  }
+
+                  final filteredRatesData = ratesData.where((rate) {
+                    return rate['roomType'] != null &&
+                        rate['roomType']!.toString().toLowerCase().contains(searchQuery.toLowerCase());
+                  }).toList();
+
+                  return SingleChildScrollView(
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
                           ),
-                      ]);
-                    }).toList(),
-                  ),
-                ),
+                        ],
+                      ),
+                      child: DataTable(
+                        headingRowColor: MaterialStateColor.resolveWith((states) => const Color(0xFFDBB017)),
+                        columnSpacing: 20.0,
+                        horizontalMargin: 12.0,
+                        columns: [
+                          const DataColumn(label: Text('Package', style: TextStyle(fontWeight: FontWeight.bold))),
+                          const DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold))),
+                          if (userAccountType == 'Admin' || userAccountType == 'Manager')
+                            const DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: filteredRatesData.map((rate) {
+                          String docId = rate['roomType'];
+                          return DataRow(cells: [
+                            DataCell(Text(rate['roomType'] ?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataCell(Text(rate['rate'] ?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold))),
+                            if (userAccountType == 'Admin' || userAccountType == 'Manager')
+                              DataCell(
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () => _editRate(docId),
+                                ),
+                              ),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class OverviewSection extends StatefulWidget {
   @override
@@ -26,29 +26,46 @@ class _OverviewSectionState extends State<OverviewSection> {
 
     // Fetch room data
     try {
-      QuerySnapshot roomSnapshot = await FirebaseFirestore.instance.collection('rooms').get();
+      QuerySnapshot roomSnapshot =
+          await FirebaseFirestore.instance.collection('rooms').get();
       totalRooms = roomSnapshot.docs.length;
-      availableRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
-      occupiedRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Occupied').length;
+      availableRooms =
+          roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
     } catch (e) {
       print("Error fetching rooms: $e");
     }
 
-    // Fetch reservations data
+    // Fetch reservations for today (check-ins and check-outs)
     try {
+      // Get rooms that are occupied today based on check-in and check-out dates
       QuerySnapshot reservationSnapshot = await FirebaseFirestore.instance
           .collection('reservations')
-          .where('checkInDate', isGreaterThanOrEqualTo: startOfDay)
           .where('checkInDate', isLessThanOrEqualTo: endOfDay)
+          .where('checkOutDate', isGreaterThanOrEqualTo: startOfDay)
           .get();
-      checkInsToday = reservationSnapshot.docs.length;
 
+      checkInsToday = reservationSnapshot.docs.where((doc) {
+        final checkInDate = (doc['checkInDate'] as Timestamp).toDate();
+        // Check if the check-in date is today
+        return checkInDate.year == today.year &&
+            checkInDate.month == today.month &&
+            checkInDate.day == today.day;
+      }).length;
+
+      // Update the count of occupied rooms for today
+      occupiedRooms = reservationSnapshot.docs.length;
+
+      // Fetch check-outs for today (only if they are leaving today)
       QuerySnapshot checkOutSnapshot = await FirebaseFirestore.instance
           .collection('reservations')
           .where('checkOutDate', isGreaterThanOrEqualTo: startOfDay)
           .where('checkOutDate', isLessThanOrEqualTo: endOfDay)
           .get();
+
       checkOutsToday = checkOutSnapshot.docs.length;
+
+      // Update availableRooms by subtracting occupied from total rooms
+      availableRooms = totalRooms - occupiedRooms;
     } catch (e) {
       print("Error fetching reservations: $e");
     }
@@ -58,6 +75,7 @@ class _OverviewSectionState extends State<OverviewSection> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
@@ -77,11 +95,16 @@ class _OverviewSectionState extends State<OverviewSection> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildOverviewColumn("Today's\nCheck-ins", checkInsToday),
-                _buildOverviewColumn("Today's\nCheck-outs", checkOutsToday),
-                _buildOverviewColumn("Total\nIn Hotel", occupiedRooms + availableRooms),
-                _buildOverviewColumn("Total\nAvailable Rooms", availableRooms),
-                _buildOverviewColumn("Total\nOccupied Rooms", occupiedRooms),
+                _buildOverviewColumn(
+                    screenWidth, "Today's\nCheck-ins", checkInsToday),
+                _buildOverviewColumn(
+                    screenWidth, "Today's\nCheck-outs", checkOutsToday),
+                _buildOverviewColumn(screenWidth, "Total\nIn Hotel",
+                    occupiedRooms + availableRooms),
+                _buildOverviewColumn(
+                    screenWidth, "Total\nAvailable Rooms", availableRooms),
+                _buildOverviewColumn(
+                    screenWidth, "Total\nOccupied Rooms", occupiedRooms),
               ],
             ),
           ],
@@ -90,60 +113,115 @@ class _OverviewSectionState extends State<OverviewSection> {
     );
   }
 
-  Column _buildOverviewColumn(String title, int value) {
+  Column _buildOverviewColumn(double screenWidth, String title, int value) {
     final titleLines = title.split('\n');
 
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            RichText(
-              textAlign: TextAlign.start,
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: titleLines[0],
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
+    if (screenWidth > 600) {
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              RichText(
+                textAlign: TextAlign.start,
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: titleLines[0],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  const TextSpan(
-                    text: "\n",
-                    style: TextStyle(
-                      color: Colors.transparent,
+                    const TextSpan(
+                      text: "\n",
+                      style: TextStyle(
+                        color: Colors.transparent,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: titleLines[1],
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                    TextSpan(
+                      text: titleLines[1],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  const TextSpan(
-                    text: "   ",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black,
+                    const TextSpan(
+                      text: "   ",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: value.toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color:  Color(0xFFDBB017),
+                    TextSpan(
+                      text: value.toString(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFDBB017),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+        Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          RichText(
+            textAlign: TextAlign.start,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: titleLines[0],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                  ),
+                ),
+                const TextSpan(
+                  text: "\n",
+                  style: TextStyle(
+                    color: Colors.transparent,
+                  ),
+                ),
+                TextSpan(
+                  text: titleLines[1],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const TextSpan(
+                  text: "   ",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                  ),
+                ),
+                TextSpan(
+                  text: value.toString(),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color:  Color(0xFFDBB017),
+                  ),
+                ),
+              ],
             ),
-          ],
-        )
-      ],
-    );
+          ),
+        ],
+      ),
+    ],
+      );
+    }
   }
 }

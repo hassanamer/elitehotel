@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/firebase_options.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:elitehotel/screens/dashboard_screen.dart';
 import 'package:elitehotel/screens/front_desk_screen.dart';
 import 'package:elitehotel/screens/guest_screen.dart';
@@ -15,19 +16,43 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'; // Import for kIsWeb
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+    options: FirebaseOptions(apiKey: "AIzaSyAe1Gj_RaiPtC2fcdcI3-P7v0EnGAWykuk", appId: "1:73510414994:web:e1ba59595f23d713ce544b", messagingSenderId: "73510414994", projectId: "elite-hotel-26752"), // Ensures correct platform-based configuration
   );
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Initial locale is English
+  Locale _locale = Locale('en', 'US');
+
+  // Method to change language
+  void _changeLanguage(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: _locale,
+      localizationsDelegates: [
+        S.delegate,  // Your localization delegate
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: S.delegate.supportedLocales,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -37,7 +62,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => SignupScreen(),
         '/login': (context) => LoginScreen(),
-        '/main': (context) => MainScreen(),
+        '/main': (context) => MainScreen(changeLanguage: _changeLanguage),
         '/dashboard': (context) => DashboardScreen(),
         '/frontDesk': (context) => FrontDeskScreen(),
         '/housekeeping': (context) => HKScreen(),
@@ -49,8 +74,11 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 class MainScreen extends StatefulWidget {
+  final Function(Locale) changeLanguage;
+
+  MainScreen({required this.changeLanguage});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -136,7 +164,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     setState(() {
-      selectedIndex = index; // Use the index directly from the visible pages
+      selectedIndex = index;
     });
   }
 
@@ -158,8 +186,22 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.language),
+            onPressed: () {
+              // Toggle between English and Arabic
+              final currentLocale = Localizations.localeOf(context);
+              if (currentLocale.languageCode == 'en') {
+                widget.changeLanguage(Locale('ar', 'SA'));
+              } else {
+                widget.changeLanguage(Locale('en', 'US'));
+              }
+            },
+          ),
+        ],
       ),
-      body: screenWidth > 600 // Adjust layout for larger screens
+      body: screenWidth > 600
           ? Row(
         children: [
           Container(

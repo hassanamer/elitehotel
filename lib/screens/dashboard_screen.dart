@@ -1,3 +1,4 @@
+import 'package:elitehotel/widgets/dashboard_widgets/reservations_amount_section.dart';
 import 'package:flutter/material.dart';
 import 'package:elitehotel/widgets/dashboard_widgets/overview_section.dart';
 import 'package:elitehotel/widgets/dashboard_widgets/room_occupency_section.dart';
@@ -28,6 +29,7 @@ class DashboardScreen extends StatelessWidget {
             RoomsSection(),
             RoomStatusSection(),
             OccupancyStatistics(),
+            ReservationsAmountSection(),
           ],
         ),
       ),

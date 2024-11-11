@@ -56,8 +56,9 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) {    final screenWidth = MediaQuery.of(context).size.width;
+
+  return Scaffold(
       body: Stack(
         children: [
           // Background Gradient
@@ -75,7 +76,9 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           // Animated Icons and Text Slogans
-          Positioned(
+           (screenWidth > 600) ?
+
+    Positioned(
             top: 140,
             left: 20,
             child: AnimatedOpacity(
@@ -90,7 +93,23 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
-          ),
+          ):
+           Positioned(
+             top: 170,
+             left: 20,
+             child: AnimatedOpacity(
+               opacity: _animationController.value,
+               duration: const Duration(seconds: 3),
+               child: Text(
+                 "Welcome Back to Elite Hospitality",
+                 style: TextStyle(
+                   color: Colors.white,
+                   fontSize: 20,
+                   fontWeight: FontWeight.bold,
+                 ),
+               ),
+             ),
+           ),
           Positioned(
             top: 60,
             right: 30,

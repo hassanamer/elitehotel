@@ -11,6 +11,8 @@ class HKScreen extends StatefulWidget {
 }
 
 class _HKScreenState extends State<HKScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   bool _isCheckedIn = false;
@@ -50,7 +52,7 @@ class _HKScreenState extends State<HKScreen> {
     if (currentUser != null) {
       final email = currentUser.email;
 
-      final userQuery = await FirebaseFirestore.instance
+      final userQuery = await _firestore
           .collection('users')
           .where('email', isEqualTo: email)
           .limit(1)
@@ -76,7 +78,7 @@ class _HKScreenState extends State<HKScreen> {
 
   Future<void> _checkForTodayAttendance() async {
     final today = DateTime.now();
-    final attendanceSnapshot = await FirebaseFirestore.instance
+    final attendanceSnapshot = await _firestore
         .collection('attendance')
         .where('hkUserId', isEqualTo: hkUserId)
         .where('checkInTime', isGreaterThan: DateTime(today.year, today.month, today.day))
@@ -96,7 +98,7 @@ class _HKScreenState extends State<HKScreen> {
 
   Future<void> _checkIn() async {
     final today = DateTime.now();
-    final attendanceSnapshot = await FirebaseFirestore.instance
+    final attendanceSnapshot = await _firestore
         .collection('attendance')
         .where('hkUserId', isEqualTo: hkUserId)
         .where('checkInTime', isGreaterThan: DateTime(today.year, today.month, today.day))
@@ -113,7 +115,7 @@ class _HKScreenState extends State<HKScreen> {
         _location = placeName;
       });
 
-      await FirebaseFirestore.instance.collection('attendance').add({
+      await _firestore.collection('attendance').add({
         'hkUserId': hkUserId,
         'hkName': hkName,
         'checkInTime': _checkInTime,
@@ -146,14 +148,14 @@ class _HKScreenState extends State<HKScreen> {
         _location = placeName;
       });
 
-      final attendanceSnapshot = await FirebaseFirestore.instance
+      final attendanceSnapshot = await _firestore
           .collection('attendance')
           .where('hkUserId', isEqualTo: hkUserId)
           .where('checkOutTime', isNull: true)
           .get();
 
       if (attendanceSnapshot.docs.isNotEmpty) {
-        await FirebaseFirestore.instance
+        await _firestore
             .collection('attendance')
             .doc(attendanceSnapshot.docs[0].id)
             .update({
@@ -189,8 +191,7 @@ class _HKScreenState extends State<HKScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+      return Future.error('Location permissions are permanently denied, we cannot request permissions.');
     }
 
     return await Geolocator.getCurrentPosition();
@@ -273,13 +274,13 @@ class _HKScreenState extends State<HKScreen> {
   }
 
   Future<void> _updateRoomStatus(String roomId, bool isClean) async {
-    await FirebaseFirestore.instance.collection('rooms').doc(roomId).update({
+    await _firestore.collection('rooms').doc(roomId).update({
       'cleaningStatus': isClean ? 'Clean' : 'Dirty',
     });
   }
 
   Future<void> _addRequest(String requestDescription) async {
-    await FirebaseFirestore.instance.collection('requests').add({
+    await _firestore.collection('requests').add({
       'hkUserId': hkUserId,
       'hkName': hkName,
       'description': requestDescription,
@@ -289,88 +290,10 @@ class _HKScreenState extends State<HKScreen> {
   }
 
   Future<void> _updateRequestStatus(String requestId, String status) async {
-    await FirebaseFirestore.instance
-        .collection('requests')
-        .doc(requestId)
-        .update({'status': status});
+    await _firestore.collection('requests').doc(requestId).update({'status': status});
   }
 
-  Widget buildRequestsPage() {
-    TextEditingController requestController = TextEditingController();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: requestController,
-            decoration: InputDecoration(
-              labelText: 'Add Request',
-              border: OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.send),
-                onPressed: () {
-                  if (requestController.text.isNotEmpty) {
-                    _addRequest(requestController.text);
-                    requestController.clear();
-                  }
-                },
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('requests')
-                .where('hkUserId', isEqualTo: hkUserId)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return CircularProgressIndicator();
-
-              return ListView(
-                children: snapshot.data!.docs.map((doc) {
-                  String requestId = doc.id;
-                  String description = doc['description'];
-                  String status = doc['status'];
-
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: ListTile(
-                      title: Text(description),
-                      subtitle: Text('Status: $status'),
-                      trailing: DropdownButton<String>(
-                        value: status,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Pending',
-                            child: Text('Pending', style: TextStyle(color: Colors.orange)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'In Progress',
-                            child: Text('In Progress', style: TextStyle(color: Colors.blue)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Completed',
-                            child: Text('Completed', style: TextStyle(color: Colors.green)),
-                          ),
-                        ],
-                        onChanged: (String? newStatus) {
-                          if (newStatus != null) {
-                            _updateRequestStatus(requestId, newStatus);
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget buildCheckInOutButton() {
     return SizedBox(
@@ -392,12 +315,12 @@ class _HKScreenState extends State<HKScreen> {
 
   Widget buildRoomsPage() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
+      stream: _firestore
           .collection('rooms')
-          .where('cleaningStatus', isEqualTo: 'Dirty')
+          .where('cleaningStatus', isEqualTo: 'Dirty') // Fetch only dirty rooms
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return CircularProgressIndicator();
+        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
         if (snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
@@ -454,6 +377,168 @@ class _HKScreenState extends State<HKScreen> {
     );
   }
 
+  Widget buildRequestsPage() {
+    TextEditingController requestController = TextEditingController();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: requestController,
+            decoration: InputDecoration(
+              labelText: 'Add Request',
+              border: OutlineInputBorder(),
+              suffixIcon: IconButton(
+                icon: Icon(Icons.send),
+                onPressed: () {
+                  if (requestController.text.isNotEmpty) {
+                    _addRequest(requestController.text);
+                    requestController.clear();
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('requests')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return CircularProgressIndicator();
+
+              return ListView(
+                children: snapshot.data!.docs.map((doc) {
+                  String requestId = doc.id;
+                  String description = doc['description'];
+                  String status = doc['status'];
+
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    child: ListTile(
+                      title: Text(description),
+                      subtitle: Text('Status: $status'),
+                      trailing: DropdownButton<String>(
+                        value: status,
+                        items: [
+                          DropdownMenuItem(
+                            value: 'Pending',
+                            child: Text('Pending', style: TextStyle(color: Colors.orange)),
+                          ),
+                          DropdownMenuItem(
+                            value: 'In Progress',
+                            child: Text('In Progress', style: TextStyle(color: Colors.blue)),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Completed',
+                            child: Text('Completed', style: TextStyle(color: Colors.green)),
+                          ),
+                        ],
+                        onChanged: (String? newStatus) async {
+                          if (newStatus != null) {
+                            await _updateRequestStatus(requestId, newStatus);
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+  Future<void> _updateNoteStatus(String reservationId, String newStatus) async {
+    await _firestore.collection('reservations').doc(reservationId).update({
+      'notes.status': newStatus,
+    });
+  }
+
+  Widget buildAssignedNotesPage() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchAssignedNotes(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No assigned notes.'));
+        }
+
+        return ListView.builder(
+          itemCount: snapshot.data!.length,
+          itemBuilder: (context, index) {
+            var note = snapshot.data![index];
+            return Card(
+              margin: EdgeInsets.all(8),
+              child: ListTile(
+                title: Text(
+                  '${note['text']}',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Frequency: ${note['frequency']}'),
+                    Text('Guest: ${note['guestName']}'),
+                    Text('Room: ${note['roomNumber']}'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (userAccountType == 'HK Staff')
+                        Text('Status:'),
+                        if (userAccountType == 'HK Staff')
+                          DropdownButton<String>(
+                          value: note['status'] ?? 'Pending', // Provide a default value
+                          items: ['Pending', 'In Progress', 'Completed']
+                              .map((String status) {
+                            return DropdownMenuItem<String>(
+                              value: status,
+                              child: Text(status),
+                            );
+                          }).toList(),
+                          onChanged: (newStatus) async {
+                            if (newStatus != null) {
+                              await _updateNoteStatus(note['reservationId'], newStatus);
+                              setState(() {}); // Refresh the UI after updating
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchAssignedNotes() async {
+    final notesSnapshot = await _firestore
+        .collection('reservations')
+        .where('notes.assignedToHK', isEqualTo: true)
+        .get();
+
+    return notesSnapshot.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'reservationId': doc.id,
+        'frequency': data['frequency'] ?? 'Once',
+        'text': data['notes']['text'] ?? '',
+        'status': data['notes']['status'],
+        'guestName': data['guestName'],
+        'roomNumber': data['roomNumber'],
+      };
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -494,22 +579,30 @@ class _HKScreenState extends State<HKScreen> {
             ),
           buildRoomsPage(),
           buildRequestsPage(),
+          buildAssignedNotesPage(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Color(0xFFDBB017),
+        unselectedItemColor: Colors.black,
+        unselectedLabelStyle: TextStyle(color: Colors.black),
         items: [
           if (userAccountType != 'Front Desk')
             const BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+              icon: Icon(Icons.home, color: Color(0xFFDBB017)),
               label: 'Home',
             ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.room_service),
+            icon: Icon(Icons.room_service, color: Color(0xFFDBB017)),
             label: 'Rooms',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.list),
+            icon: Icon(Icons.list, color: Color(0xFFDBB017)),
             label: 'Requests',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.event_note_sharp, color: Color(0xFFDBB017)),
+            label: 'Assigned Notes',
           ),
         ],
         currentIndex: _selectedIndex,

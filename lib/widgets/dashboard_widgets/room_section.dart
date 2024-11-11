@@ -42,44 +42,104 @@ class _RoomsSectionState extends State<RoomsSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Rooms',
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    if (screenWidth > 600) {
+      return Card(
+        margin: const EdgeInsets.all(16.0),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Rooms',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Rooms Overview
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              child: GridView.count(
-                crossAxisCount: 3, // Adjust to fit four items per row
-                childAspectRatio: 2, // Adjust aspect ratio
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(), // Disable scroll for GridView
-                children: ratesData.map((rate) {
-                  return _buildRoomTile(
-                    rate['roomType'] ?? 'Unknown',
-                    '${rate['availability'] ?? 0}', // Display availability
-                    '\$${rate['rate'] ?? '0'}/day', // Display rate
-                    '2 Days', // Placeholder for badge text
-                  );
-                }).toList(),
+              const SizedBox(height: 16),
+              // Rooms Overview
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  // Adjust to fit four items per row
+                  childAspectRatio: 2,
+                  // Adjust aspect ratio
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  // Disable scroll for GridView
+                  children: ratesData.map((rate) {
+                    return _buildRoomTile(
+                      rate['roomType'] ?? 'Unknown',
+                      '${rate['availability'] ?? 0}', // Display availability
+                      '\$${rate['rate'] ?? '0'}/day', // Display rate
+                      '2 Days', // Placeholder for badge text
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }else{
+      return Card(
+        margin: const EdgeInsets.all(16.0),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Rooms',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Rooms Overview
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Calculate number of columns based on available width
+                  int columns = constraints.maxWidth > 600 ? 4 : 1; // Use 4 columns for larger screens, 2 for smaller ones
+
+                  return Container(
+                    padding: const EdgeInsets.all(16.0),
+                    child: GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        childAspectRatio: 2,
+                      ),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: ratesData.length,
+                      itemBuilder: (context, index) {
+                        final rate = ratesData[index];
+                        return _buildRoomTile(
+                          rate['roomType'] ?? 'Unknown',
+                          '${rate['availability'] ?? 0}', // Display availability
+                          '\$${rate['rate'] ?? '0'}/day', // Display rate
+                          '2 Days', // Placeholder for badge text
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+    }
   }
 
   Widget _buildRoomTile(String title, String status, String price, String badgeText) {
