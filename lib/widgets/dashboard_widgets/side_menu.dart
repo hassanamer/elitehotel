@@ -24,7 +24,8 @@ class SideMenu extends StatelessWidget {
               if (visiblePages.contains(4)) _buildMenuItem(Icons.room, 'Rooms', 4),
               if (visiblePages.contains(5)) _buildMenuItem(Icons.rate_review, 'Rates', 5),
               if (visiblePages.contains(6)) _buildMenuItem(Icons.book, 'Reservations', 6),
-              if (visiblePages.contains(7)) _buildMenuItem(Icons.settings, 'Settings', 7),
+              if (visiblePages.contains(7)) _buildMenuItem(Icons.book, 'Invoices', 7),
+              if (visiblePages.contains(8)) _buildMenuItem(Icons.settings, 'Settings', 8),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color:  Color(0xFFDBB017)),

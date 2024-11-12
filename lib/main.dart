@@ -18,6 +18,8 @@ import 'package:flutter/foundation.dart'; // Import for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'screens/invoices_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -70,6 +72,7 @@ class _MyAppState extends State<MyApp> {
         '/rooms': (context) => RoomsScreen(),
         '/rates': (context) => RatesScreen(),
         '/reservations': (context) => ReservationScreen(),
+        '/invoices': (context) => InvoicesScreen(),  // Add this line
       },
     );
   }
@@ -127,6 +130,7 @@ class _MainScreenState extends State<MainScreen> {
           RoomsScreen(),
           RatesScreen(),
           ReservationScreen(),
+          InvoicesScreen(),  // Add Invoices screen here
           SettingsScreen(),
         ];
       case 'Front Desk':
@@ -152,7 +156,7 @@ class _MainScreenState extends State<MainScreen> {
     switch (role) {
       case 'Admin':
       case 'Manager':
-        return [0, 1, 2, 3, 4, 5, 6, 7];
+        return [0, 1, 2, 3, 4, 5, 6, 7, 8];
       case 'Front Desk':
         return [1, 2, 3, 4, 5, 6, 7];
       case 'HK Staff':

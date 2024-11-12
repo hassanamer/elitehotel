@@ -1,6 +1,10 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import 'invoice_screen.dart';
 
 class ReservationScreen extends StatefulWidget {
   @override
@@ -13,7 +17,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final TextEditingController _childrenController = TextEditingController();
   final TextEditingController _amountPaidController = TextEditingController();
   final TextEditingController _notesController =
-      TextEditingController(); // Notes controller
+  TextEditingController(); // Notes controller
 
 
   DateTime? _checkInDate;
@@ -81,7 +85,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
     DateTime initialDate =
-        isCheckIn ? DateTime.now() : _checkInDate ?? DateTime.now();
+    isCheckIn ? DateTime.now() : _checkInDate ?? DateTime.now();
     DateTime firstDate = DateTime.now();
     DateTime lastDate = DateTime.now().add(Duration(days: 365));
 
@@ -167,7 +171,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       } else {
         _showError('No available rooms of this type');
         _assignedRoomNumber =
-            null; // Reset assigned room number if none available
+        null; // Reset assigned room number if none available
       }
     } catch (e) {
       print("Error assigning room: $e");
@@ -180,21 +184,26 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
 
     try {
-      // Fetch the current maximum reservationId
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('reservations')
-          .orderBy('reservationId', descending: true)
-          .limit(1)
-          .get();
-      int newReservationId = 1; // Default value
+      // Generate a random reservationId and document ID
+      int newReservationId = Random().nextInt(900000) + 100000; // Generates a 6-digit number
 
-      if (snapshot.docs.isNotEmpty) {
-        newReservationId = (snapshot.docs.first['reservationId'] as int) +
-            1; // Increment the max reservationId
+      // Check if reservationId already exists (Optional: to avoid duplicate IDs)
+      bool exists = await FirebaseFirestore.instance
+          .collection('reservations')
+          .where('reservationId', isEqualTo: newReservationId)
+          .get()
+          .then((snapshot) => snapshot.docs.isNotEmpty);
+
+      if (exists) {
+        // Retry to get a unique ID if duplicate is found
+        newReservationId = Random().nextInt(900000) + 100000;
       }
 
-      // Create reservation document
-      await FirebaseFirestore.instance.collection('reservations').add({
+      // Create reservation document with the random ID
+      await FirebaseFirestore.instance
+          .collection('reservations')
+          .doc(newReservationId.toString()) // Set the document ID
+          .set({
         'reservationId': newReservationId, // Add the unique reservation ID
         'guestName': _guestNameController.text,
         'roomType': _selectedRoomType,
@@ -208,9 +217,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'remainingBalance': _remainingBalance,
         'notes': {
           'text': _notesController.text,
-          // Add the note text to the reservation
           'frequency': _noteFrequency,
-          // Add the frequency of the note (Just Once or Daily)
         },
       });
 
@@ -223,74 +230,39 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'currentGuest': _guestNameController.text,
       });
 
-      // Debug prints to verify the values before showing the invoice
-      print('Guest Name: ${_guestNameController.text}');
-      print('Room Type: $_selectedRoomType');
-      print('Room Number: $_assignedRoomNumber');
-      print(
-          'Check-In Date: ${_checkInDate != null ? DateFormat('yyyy-MM-dd').format(_checkInDate!) : 'N/A'}');
-      print(
-          'Check-Out Date: ${_checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : 'N/A'}');
-      print('Total Cost: $_totalCost');
-      print('Amount Paid: ${_amountPaidController.text}');
-      print('Remaining Balance: $_remainingBalance');
-
-      // Show invoice preview
-      // _showInvoicePreview();
-
-      // Reset form fields to ensure they are ready for the next reservation
-      _resetForm();
-
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Reservation created successfully!')),
       );
+
+      // Navigate to the invoice preview with the new reservationId as invoice number
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InvoiceScreen(
+            invoiceNumber: newReservationId,  // Pass the random ID as invoice number
+            guestName: _guestNameController.text,
+            roomType: _selectedRoomType ?? 'N/A',
+            roomNumber: _assignedRoomNumber ?? 'N/A',
+            checkInDate: _checkInDate ?? DateTime.now(),
+            checkOutDate: _checkOutDate ?? DateTime.now(),
+            amountPaid: double.tryParse(_amountPaidController.text) ?? 0.0,
+            remainingBalance: _remainingBalance,
+          ),
+        ),
+      ).then((_) {
+        // Reset form after returning from InvoiceScreen
+        _resetForm();
+      });
+
     } catch (e) {
       print("Error creating reservation: $e");
     }
   }
 
-  // void _showInvoicePreview() {
-  //   Navigator.of(context).push(MaterialPageRoute(
-  //     builder: (context) => InvoiceScreen(
-  //       guestName: _guestNameController.text,
-  //       roomType: _selectedRoomType!,
-  //       roomNumber: _assignedRoomNumber!,
-  //       checkInDate: _checkInDate!,
-  //       checkOutDate: _checkOutDate!,
-  //       totalCost: _totalCost,
-  //       amountPaid: double.tryParse(_amountPaidController.text) ?? 0.0,
-  //       remainingBalance: _remainingBalance,
-  //     ),
-  //   ));
-  // }
-  //
-  // void _generateInvoice() async {
-  //   final pdf = pw.Document();
-  //
-  //   pdf.addPage(
-  //     pw.Page(
-  //       build: (pw.Context context) {
-  //         return pw.Column(
-  //           children: [
-  //             pw.Text('Invoice', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-  //             pw.SizedBox(height: 20),
-  //             pw.Text('Guest Name: ${_guestNameController.text}'),
-  //             pw.Text('Room Type: $_selectedRoomType'),
-  //             pw.Text('Room Number: $_assignedRoomNumber'),
-  //             pw.Text('Check-In Date: ${_checkInDate != null ? DateFormat('yyyy-MM-dd').format(_checkInDate!) : 'N/A'}'),
-  //             pw.Text('Check-Out Date: ${_checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : 'N/A'}'),
-  //             pw.Text('Total Cost: \$${_totalCost.toStringAsFixed(2)}'),
-  //             pw.Text('Amount Paid: \$${_amountPaidController.text}'),
-  //             pw.Text('Remaining Balance: \$${_remainingBalance.toStringAsFixed(2)}'),
-  //           ],
-  //         );
-  //       },
-  //     ),
-  //   );
-  //
-  //   // Save the PDF and prompt the user to print or download
-  //   await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  // }
+
+
+
 
   void _resetForm() {
     setState(() {
@@ -321,537 +293,547 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ),
       body: (screenWidth > 600)
           ? SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _guestNameController,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _guestNameController,
+                decoration: InputDecoration(
+                  labelText: 'Guest Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedPackage,
+                items: _packages.map((package) {
+                  return DropdownMenuItem(
+                    value: package,
+                    child: Text(package),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Select Package',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPackage = value;
+                  });
+                  _fetchRate(); // Fetch rate based on selected package
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedRoomType,
+                items: _roomTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Room Type',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedRoomType = value;
+                  });
+                  _assignRoom(); // Assign room based on selected room type
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _adultsController,
                       decoration: InputDecoration(
-                        labelText: 'Guest Name',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedPackage,
-                      items: _packages.map((package) {
-                        return DropdownMenuItem(
-                          value: package,
-                          child: Text(package),
-                        );
-                      }).toList(),
-                      decoration: InputDecoration(
-                        labelText: 'Select Package',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedPackage = value;
-                        });
-                        _fetchRate(); // Fetch rate based on selected package
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedRoomType,
-                      items: _roomTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      decoration: InputDecoration(
-                        labelText: 'Room Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRoomType = value;
-                        });
-                        _assignRoom(); // Assign room based on selected room type
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _adultsController,
-                            decoration: InputDecoration(
-                              labelText: 'Number of Adults',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _childrenController,
-                            decoration: InputDecoration(
-                              labelText: 'Number of Children',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ListTile(
-                            title: Text(
-                              _checkInDate == null
-                                  ? 'Check-In Date'
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(_checkInDate!),
-                            ),
-                            trailing: Icon(Icons.calendar_today),
-                            onTap: () => _selectDate(context, true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ListTile(
-                            title: Text(
-                              _checkOutDate == null
-                                  ? 'Check-Out Date'
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(_checkOutDate!),
-                            ),
-                            trailing: Icon(Icons.calendar_today),
-                            onTap: () => _selectDate(context, false),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _amountPaidController,
-                      decoration: InputDecoration(
-                        labelText: 'Amount Paid',
+                        labelText: 'Number of Adults',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
-                      onChanged: (value) => _calculateTotalCost(),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _notesController,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _childrenController,
                       decoration: InputDecoration(
-                          labelText: 'Notes (e.g., breakfast request)'),
-                    ),
-                    DropdownButton<String>(
-                      value: _noteFrequency,
-                      items: <String>['Just Once', 'Daily'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _noteFrequency = newValue!;
-                        });
-                      },
-                      hint: Text('Select Note Frequency'),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _createReservation,
-                      child: Text('Create Reservation'),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDBB017)),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      width: MediaQuery.of(context).size.width,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                        labelText: 'Number of Children',
+                        border: OutlineInputBorder(),
                       ),
-                      child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('reservations')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                          final reservations = snapshot.data!.docs;
-
-                          return DataTable(
-                            headingRowColor: MaterialStateColor.resolveWith(
-                                (states) => const Color(0xFFDBB017)),
-                            columnSpacing: 12.0,
-                            horizontalMargin: 12.0,
-                            columns: const [
-                              DataColumn(
-                                  label: Text('ReservationId',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Guest Name',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Room Type',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Room Number',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Check-In',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Check-Out',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Total Cost',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(
-                                  label: Text('Remaining',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Notes')),
-                              // New column for notes
-                            ],
-                            rows: reservations.map((reservation) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(
-                                      reservation['reservationId'].toString() ??
-                                          'N/A')),
-                                  DataCell(
-                                      Text(reservation['guestName'] ?? 'N/A')),
-                                  DataCell(
-                                      Text(reservation['roomType'] ?? 'N/A')),
-                                  DataCell(
-                                      Text(reservation['roomNumber'] ?? 'N/A')),
-                                  DataCell(Text(
-                                    DateFormat('yyyy-MM-dd').format(
-                                        (reservation['checkInDate']
-                                                as Timestamp)
-                                            .toDate()),
-                                  )),
-                                  DataCell(Text(
-                                    DateFormat('yyyy-MM-dd').format(
-                                        (reservation['checkOutDate']
-                                                as Timestamp)
-                                            .toDate()),
-                                  )),
-                                  DataCell(Text(
-                                      '\$${reservation['totalCost'].toString()}')),
-                                  DataCell(Text(
-                                    '\$${reservation['remainingBalance'].toString()}',
-                                    style: TextStyle(color: Colors.red),
-                                  )),
-                                  DataCell(Text(
-                                      '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})')), // Show notes with frequency
-                                ],
-                              );
-                            }).toList(),
-                          );
-                        },
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      title: Text(
+                        _checkInDate == null
+                            ? 'Check-In Date'
+                            : DateFormat('yyyy-MM-dd')
+                            .format(_checkInDate!),
                       ),
+                      trailing: Icon(Icons.calendar_today),
+                      onTap: () => _selectDate(context, true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ListTile(
+                      title: Text(
+                        _checkOutDate == null
+                            ? 'Check-Out Date'
+                            : DateFormat('yyyy-MM-dd')
+                            .format(_checkOutDate!),
+                      ),
+                      trailing: Icon(Icons.calendar_today),
+                      onTap: () => _selectDate(context, false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _amountPaidController,
+                decoration: InputDecoration(
+                  labelText: 'Amount Paid',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) => _calculateTotalCost(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                    labelText: 'Notes (e.g., breakfast request)'),
+              ),
+              DropdownButton<String>(
+                value: _noteFrequency,
+                items: <String>['Just Once', 'Daily'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _noteFrequency = newValue!;
+                  });
+                },
+                hint: Text('Select Note Frequency'),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _createReservation,
+                child: Text('Create Reservation'),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDBB017)),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: MediaQuery.of(context).size.width,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('reservations')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    final reservations = snapshot.data!.docs;
+
+                    return DataTable(
+                      headingRowColor: MaterialStateColor.resolveWith(
+                              (states) => const Color(0xFFDBB017)),
+                      columnSpacing: 12.0,
+                      horizontalMargin: 12.0,
+                      columns: const [
+                        DataColumn(
+                            label: Text('ReservationId',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Guest Name',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Room Type',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Room Number',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Check-In',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Check-Out',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Total Cost',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Remaining',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('Notes')),
+                        // New column for notes
+                      ],
+                      rows: reservations.map((reservation) {
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(
+                                reservation['reservationId'].toString() ??
+                                    'N/A')),
+                            DataCell(
+                                Text(reservation['guestName'] ?? 'N/A')),
+                            DataCell(
+                                Text(reservation['roomType'] ?? 'N/A')),
+                            DataCell(
+                                Text(reservation['roomNumber'] ?? 'N/A')),
+                            DataCell(Text(
+                              DateFormat('yyyy-MM-dd').format(
+                                  (reservation['checkInDate']
+                                  as Timestamp)
+                                      .toDate()),
+                            )),
+                            DataCell(Text(
+                              DateFormat('yyyy-MM-dd').format(
+                                  (reservation['checkOutDate']
+                                  as Timestamp)
+                                      .toDate()),
+                            )),
+                            DataCell(Text(
+                                '\$${reservation['totalCost'].toString()}')),
+                            DataCell(Text(
+                              '\$${reservation['remainingBalance'].toString()}',
+                              style: TextStyle(color: Colors.red),
+                            )),
+                            DataCell(Text(
+                                '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})')), // Show notes with frequency
+                          ],
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
               ),
-            )
+            ],
+          ),
+        ),
+      )
           : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _guestNameController,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _guestNameController,
+                decoration: InputDecoration(
+                  labelText: 'Guest Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedRoomType,
+                items: _roomTypes.map((type) {
+                  return DropdownMenuItem(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Room Type',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedRoomType = value!;
+                  });
+                  _fetchRate();
+                  _assignRoom();                      },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _adultsController,
                       decoration: InputDecoration(
-                        labelText: 'Guest Name',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedRoomType,
-                      items: _roomTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      decoration: InputDecoration(
-                        labelText: 'Room Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRoomType = value!;
-                        });
-                        _fetchRate();
-                        _assignRoom();                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _adultsController,
-                            decoration: InputDecoration(
-                              labelText: 'Number of Adults',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _childrenController,
-                            decoration: InputDecoration(
-                              labelText: 'Number of Children',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ListTile(
-                            title: Text(
-                              _checkInDate == null
-                                  ? 'Check-In Date'
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(_checkInDate!),
-                            ),
-                            trailing: Icon(Icons.calendar_today),
-                            onTap: () => _selectDate(context, true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ListTile(
-                            title: Text(
-                              _checkOutDate == null
-                                  ? 'Check-Out Date'
-                                  : DateFormat('yyyy-MM-dd')
-                                      .format(_checkOutDate!),
-                            ),
-                            trailing: Icon(Icons.calendar_today),
-                            onTap: () => _selectDate(context, false),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _amountPaidController,
-                      decoration: InputDecoration(
-                        labelText: 'Amount Paid',
+                        labelText: 'Number of Adults',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
-                      onChanged: (value) => _calculateTotalCost(),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _notesController,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _childrenController,
                       decoration: InputDecoration(
-                          labelText: 'Notes (e.g., breakfast request)'),
-                    ),
-                    DropdownButton<String>(
-                      value: _noteFrequency,
-                      items: <String>['Just Once', 'Daily'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _noteFrequency = newValue!;
-                        });
-                      },
-                      hint: Text('Select Note Frequency'),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _createReservation,
-                      child: Text('Create Reservation'),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDBB017)),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      width: MediaQuery.of(context).size.width,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                        labelText: 'Number of Children',
+                        border: OutlineInputBorder(),
                       ),
-                      child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('reservations')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                          final reservations = snapshot.data!.docs;
-
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            // Enables vertical scrolling
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              // Enables horizontal scrolling
-                              child: DataTable(
-                                headingRowColor: MaterialStateColor.resolveWith(
-                                    (states) => const Color(0xFFDBB017)),
-                                columnSpacing: 12.0,
-                                horizontalMargin: 12.0,
-                                columns: const [
-                                  DataColumn(
-                                      label: Text('ReservationId',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Guest Name',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Room Type',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Room Number',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Check-In',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Check-Out',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Total Cost',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(
-                                      label: Text('Remaining',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('Notes')),
-                                  // New column for notes
-                                ],
-                                rows: reservations.map((reservation) {
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(Text(reservation['reservationId']
-                                              .toString() ??
-                                          'N/A')),
-                                      DataCell(Text(
-                                          reservation['guestName'] ?? 'N/A')),
-                                      DataCell(Text(
-                                          reservation['roomType'] ?? 'N/A')),
-                                      DataCell(Text(
-                                          reservation['roomNumber'] ?? 'N/A')),
-                                      DataCell(Text(
-                                        DateFormat('yyyy-MM-dd').format(
-                                            (reservation['checkInDate']
-                                                    as Timestamp)
-                                                .toDate()),
-                                      )),
-                                      DataCell(Text(
-                                        DateFormat('yyyy-MM-dd').format(
-                                            (reservation['checkOutDate']
-                                                    as Timestamp)
-                                                .toDate()),
-                                      )),
-                                      DataCell(Text(
-                                          '\$${reservation['totalCost'].toString()}')),
-                                      DataCell(Text(
-                                        '\$${reservation['remainingBalance'].toString()}',
-                                        style: TextStyle(color: Colors.red),
-                                      )),
-                                      DataCell(Text(
-                                          '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})')), // Show notes with frequency
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          );
-                        },
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      title: Text(
+                        _checkInDate == null
+                            ? 'Check-In Date'
+                            : DateFormat('yyyy-MM-dd')
+                            .format(_checkInDate!),
                       ),
+                      trailing: Icon(Icons.calendar_today),
+                      onTap: () => _selectDate(context, true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ListTile(
+                      title: Text(
+                        _checkOutDate == null
+                            ? 'Check-Out Date'
+                            : DateFormat('yyyy-MM-dd')
+                            .format(_checkOutDate!),
+                      ),
+                      trailing: Icon(Icons.calendar_today),
+                      onTap: () => _selectDate(context, false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _amountPaidController,
+                decoration: InputDecoration(
+                  labelText: 'Amount Paid',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) => _calculateTotalCost(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                    labelText: 'Notes (e.g., breakfast request)'),
+              ),
+              DropdownButton<String>(
+                value: _noteFrequency,
+                items: <String>['Just Once', 'Daily'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _noteFrequency = newValue!;
+                  });
+                },
+                hint: Text('Select Note Frequency'),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _createReservation,
+                child: Text('Create Reservation'),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDBB017)),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: MediaQuery.of(context).size.width,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('reservations')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    final reservations = snapshot.data!.docs;
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      // Enables vertical scrolling
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        // Enables horizontal scrolling
+                        child: DataTable(
+                          headingRowColor: MaterialStateColor.resolveWith(
+                                  (states) => const Color(0xFFDBB017)),
+                          columnSpacing: 12.0,
+                          horizontalMargin: 12.0,
+                          columns: const [
+                            DataColumn(
+                                label: Text('ReservationId',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Guest Name',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Room Type',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Room Number',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Check-In',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Check-Out',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Total Cost',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold))),
+                            DataColumn(
+                                label: Text('Remaining',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold),),),
+                            DataColumn(label: Text('Notes', style: TextStyle(
+                                fontWeight: FontWeight.bold),),),
+                            DataColumn(label: Text('Invoices', style: TextStyle(
+                                fontWeight: FontWeight.bold),),),
+                          ],
+                          rows: reservations.map((reservation) {
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(reservation['reservationId']
+                                    .toString() ??
+                                    'N/A')),
+                                DataCell(Text(
+                                    reservation['guestName'] ?? 'N/A')),
+                                DataCell(Text(
+                                    reservation['roomType'] ?? 'N/A')),
+                                DataCell(Text(
+                                    reservation['roomNumber'] ?? 'N/A')),
+                                DataCell(Text(
+                                  DateFormat('yyyy-MM-dd').format(
+                                      (reservation['checkInDate']
+                                      as Timestamp)
+                                          .toDate()),
+                                )),
+                                DataCell(Text(
+                                  DateFormat('yyyy-MM-dd').format(
+                                      (reservation['checkOutDate']
+                                      as Timestamp)
+                                          .toDate()),
+                                )),
+                                DataCell(Text(
+                                    '\$${reservation['totalCost'].toString()}')),
+                                DataCell(Text(
+                                  '\$${reservation['remainingBalance'].toString()}',
+                                  style: TextStyle(color: Colors.red),
+                                )),
+                                DataCell(Text(
+                                    '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})'),), // Show notes with frequency
+                                DataCell(
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      // Add logic to preview or download the invoice
+                                    },
+                                    child: Text('View Invoice'),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
