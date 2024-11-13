@@ -1,3 +1,4 @@
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -54,8 +55,8 @@ class _RoomsSectionState extends State<RoomsSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Rooms',
+               Text(
+                 S.current.rooms ,
                 style: TextStyle(
                   fontSize: 20,
                   color: Colors.black,
@@ -78,7 +79,7 @@ class _RoomsSectionState extends State<RoomsSection> {
                     return _buildRoomTile(
                       rate['roomType'] ?? 'Unknown',
                       '${rate['availability'] ?? 0}', // Display availability
-                      '\$${rate['rate'] ?? '0'}/day', // Display rate
+                      '${rate['rate'] ?? '0'}/${S.current.day}', // Display rate
                       '2 Days', // Placeholder for badge text
                     );
                   }).toList(),

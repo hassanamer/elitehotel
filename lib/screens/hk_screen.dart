@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -39,7 +40,7 @@ class _HKScreenState extends State<HKScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showMessage("Location services are disabled.");
+        _showMessage(S.current.locationServicesDisabled);
       }
     } catch (e) {
       _showMessage("Location services are not available on this platform.");
@@ -128,7 +129,7 @@ class _HKScreenState extends State<HKScreen> {
         },
       });
     } else {
-      _showMessage('You have already checked in today.');
+      _showMessage(S.current.youHaveAlreadyCheckedIn);
     }
   }
 
@@ -169,7 +170,7 @@ class _HKScreenState extends State<HKScreen> {
         });
       }
     } else {
-      _showMessage('You must check in before checking out.');
+      _showMessage(S.current.youMustCheckInBeforeCheckingOut);
     }
   }
 
@@ -219,7 +220,7 @@ class _HKScreenState extends State<HKScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Location: $_location',
+              '${S.current.location} $_location',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
@@ -236,8 +237,8 @@ class _HKScreenState extends State<HKScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            buildClockCard('Check In', _checkInTime),
-            buildClockCard('Check Out', _checkOutTime),
+            buildClockCard(S.current.checkIn, _checkInTime),
+            buildClockCard(S.current.checkOut, _checkOutTime),
             buildWorkingHoursCard(),
           ],
         ),
@@ -268,7 +269,7 @@ class _HKScreenState extends State<HKScreen> {
               : 'N/A',
           style: TextStyle(fontSize: 16),
         ),
-        Text('Working Hrs', style: TextStyle(color: Colors.grey)),
+        Text(S.current.workingHours, style: TextStyle(color: Colors.grey)),
       ],
     );
   }
@@ -297,20 +298,25 @@ class _HKScreenState extends State<HKScreen> {
 
   Widget buildCheckInOutButton() {
     return SizedBox(
-      width: 120,
-      height: 120,
+      width: 140,
+      height: 140,
       child: ElevatedButton(
         onPressed: _isCheckedIn ? _checkOut : _checkIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: _isCheckedIn ? Colors.red : Colors.green,
           shape: CircleBorder(),
         ),
-        child: Text(
-          _isCheckedIn ? 'Punch Out' : 'Punch In',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            _isCheckedIn ? S.current.punchOut : S.current.punchIn,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
+
   }
 
   Widget buildRoomsPage() {
@@ -324,8 +330,8 @@ class _HKScreenState extends State<HKScreen> {
         if (snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
-              'No rooms need cleaning!',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              S.current.noRoomsNeedCleaning,
+              style: TextStyle(fontSize: 18, color: Colors.black),
             ),
           );
         }
@@ -387,7 +393,7 @@ class _HKScreenState extends State<HKScreen> {
           child: TextField(
             controller: requestController,
             decoration: InputDecoration(
-              labelText: 'Add Request',
+              labelText: S.current.addRequest,
               border: OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: Icon(Icons.send),
@@ -419,21 +425,21 @@ class _HKScreenState extends State<HKScreen> {
                     margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: ListTile(
                       title: Text(description),
-                      subtitle: Text('Status: $status'),
+                      subtitle: Text('${S.current.status}: $status'),
                       trailing: DropdownButton<String>(
                         value: status,
                         items: [
                           DropdownMenuItem(
                             value: 'Pending',
-                            child: Text('Pending', style: TextStyle(color: Colors.orange)),
+                            child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
                           ),
                           DropdownMenuItem(
                             value: 'In Progress',
-                            child: Text('In Progress', style: TextStyle(color: Colors.blue)),
+                            child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
                           ),
                           DropdownMenuItem(
                             value: 'Completed',
-                            child: Text('Completed', style: TextStyle(color: Colors.green)),
+                            child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
                           ),
                         ],
                         onChanged: (String? newStatus) async {
@@ -466,7 +472,7 @@ class _HKScreenState extends State<HKScreen> {
           return Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No assigned notes.'));
+          return Center(child: Text(S.current.noassignednotes));
         }
 
         return ListView.builder(
@@ -490,11 +496,11 @@ class _HKScreenState extends State<HKScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         if (userAccountType == 'HK Staff')
-                        Text('Status:'),
+                        Text('${S.current.status}:'),
                         if (userAccountType == 'HK Staff')
                           DropdownButton<String>(
                           value: note['status'] ?? 'Pending', // Provide a default value
-                          items: ['Pending', 'In Progress', 'Completed']
+                          items: [S.current.pending, S.current.inProgress, S.current.completed]
                               .map((String status) {
                             return DropdownMenuItem<String>(
                               value: status,
@@ -548,7 +554,7 @@ class _HKScreenState extends State<HKScreen> {
         backgroundColor: const Color(0xFFDBB017),
         elevation: 0,
         title: Text(
-          'Hello, $hkName! 👋',
+          'HELLO, $hkName! 👋',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -588,21 +594,21 @@ class _HKScreenState extends State<HKScreen> {
         unselectedLabelStyle: TextStyle(color: Colors.black),
         items: [
           if (userAccountType != 'Front Desk')
-            const BottomNavigationBarItem(
+             BottomNavigationBarItem(
               icon: Icon(Icons.home, color: Color(0xFFDBB017)),
-              label: 'Home',
+              label: S.current.homeTitle,
             ),
-          const BottomNavigationBarItem(
+           BottomNavigationBarItem(
             icon: Icon(Icons.room_service, color: Color(0xFFDBB017)),
-            label: 'Rooms',
+            label: S.current.rooms,
           ),
-          const BottomNavigationBarItem(
+           BottomNavigationBarItem(
             icon: Icon(Icons.list, color: Color(0xFFDBB017)),
-            label: 'Requests',
+            label: S.current.requests,
           ),
-          const BottomNavigationBarItem(
+           BottomNavigationBarItem(
             icon: Icon(Icons.event_note_sharp, color: Color(0xFFDBB017)),
-            label: 'Assigned Notes',
+            label: S.current.assignedNotes,
           ),
         ],
         currentIndex: _selectedIndex,

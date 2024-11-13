@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 
 class GuestScreen extends StatefulWidget {
@@ -75,6 +76,14 @@ class _GuestScreenState extends State<GuestScreen> {
     }
   }
 
+// Define a map for identifiers and their localized strings
+  final statusOptions = {
+    'all': S.current.all,
+    'checkedIn': S.current.checkedIn,
+    'checkedOut': S.current.checkedOut,
+    'upcoming': S.current.upcoming,
+  };
+
   void filterData() {
     String searchQuery = searchController.text.toLowerCase();
     setState(() {
@@ -138,7 +147,7 @@ class _GuestScreenState extends State<GuestScreen> {
                     child: TextField(
                       controller: searchController,
                       decoration: InputDecoration(
-                        labelText: 'Search by name, ID, or room',
+                        labelText: S.current.searchBy,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
@@ -151,13 +160,14 @@ class _GuestScreenState extends State<GuestScreen> {
                   Expanded(
                     flex: 1,
                     child: DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      items: ['All', 'Checked In', 'Checked Out', 'Upcoming']
-                          .map((status) => DropdownMenuItem(
-                                value: status,
-                                child: Text(status),
-                              ))
-                          .toList(),
+                      // Ensure selectedStatus is a valid key or default to 'all'
+                      value: statusOptions.keys.contains(selectedStatus) ? selectedStatus : 'all',
+                      items: statusOptions.keys.map((key) {
+                        return DropdownMenuItem<String>(
+                          value: key,  // Use the identifier as the value
+                          child: Text(statusOptions[key]!),  // Display the localized string
+                        );
+                      }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedStatus = value!;
@@ -165,13 +175,12 @@ class _GuestScreenState extends State<GuestScreen> {
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Filter by Status',
+                        labelText: S.current.filterByStatus,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
-                    ),
-                  ),
+                    ),                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -197,27 +206,27 @@ class _GuestScreenState extends State<GuestScreen> {
                           (states) => const Color(0xFFDBB017)),
                       columnSpacing: 20.0,
                       horizontalMargin: 12.0,
-                      columns: const [
+                      columns:  [
                         DataColumn(
-                            label: Text('Reservation ID',
+                            label: Text(S.current.reservationId,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Name',
+                            label: Text(S.current.name,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Room Number',
+                            label: Text(S.current.roomNumber,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Total Amount',
+                            label: Text(S.current.totalAmount,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Amount Paid',
+                            label: Text(S.current.amountPaidLabel,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Status',
+                            label: Text(S.current.status,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Check-In/Out',
+                            label: Text(S.current.checkInOut,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
                       rows: filteredData.map((guest) {
@@ -259,7 +268,7 @@ class _GuestScreenState extends State<GuestScreen> {
       return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('Guest Management',
+          title:  Text(S.current.guestManagement,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           backgroundColor: const Color(0xFFDBB017),
         ),
@@ -274,7 +283,7 @@ class _GuestScreenState extends State<GuestScreen> {
                     child: TextField(
                       controller: searchController,
                       decoration: InputDecoration(
-                        labelText: 'Search by name, ID, or room',
+                        labelText: S.current.searchBy,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
@@ -288,7 +297,7 @@ class _GuestScreenState extends State<GuestScreen> {
                     flex: 1, // Filter dropdown takes 1 part
                     child: DropdownButtonFormField<String>(
                       value: selectedStatus,
-                      items: ['All', 'Checked In', 'Checked Out', 'Upcoming']
+                      items: ['All', S.current.checkedIn, S.current.checkedOut, S.current.upcoming]
                           .map((status) => DropdownMenuItem(
                         value: status,
                         child: Text(status ,style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold),),
@@ -301,7 +310,7 @@ class _GuestScreenState extends State<GuestScreen> {
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Filter by Status',
+                        labelText: S.current.filterByStatus,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
@@ -321,27 +330,27 @@ class _GuestScreenState extends State<GuestScreen> {
                               (states) => const Color(0xFFDBB017)),
                       columnSpacing: 12.0, // Adjust column spacing
                       horizontalMargin: 12.0,
-                      columns: const [
+                      columns:  [
                         DataColumn(
-                            label: Text('Reservation ID',
+                            label: Text(S.current.reservationId,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Name',
+                            label: Text(S.current.name,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Room Number',
+                            label: Text(S.current.roomNumber,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Total Amount',
+                            label: Text(S.current.totalAmount,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Amount Paid',
+                            label: Text(S.current.amountPaid,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Status',
+                            label: Text(S.current.roomStatus,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                         DataColumn(
-                            label: Text('Check-In/Out',
+                            label: Text(S.current.checkInOut,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
                       rows: filteredData.map((guest) {

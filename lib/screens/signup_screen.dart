@@ -1,3 +1,5 @@
+import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,6 +38,12 @@ class _SignupScreenState extends State<SignupScreen>
     _animationController.dispose();
     super.dispose();
   }
+  Future<void> _changeLanguage() async {
+    Locale newLocale = Localizations.localeOf(context).languageCode == 'en'
+        ? const Locale('ar', 'SA')
+        : const Locale('en', 'US');
+    MyApp.setLocale(newLocale); // Use the static method to change the locale
+  }
 
   Future<void> _registerUser() async {
     if (_formKey.currentState!.validate()) {
@@ -73,6 +81,36 @@ class _SignupScreenState extends State<SignupScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFDBB017),
+                Colors.deepPurple,
+                Colors.blueAccent,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.transparent,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.language),
+                onPressed: () {
+                  setState(() {
+                    _changeLanguage(); // Change the language first
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           // Background Gradient with Primary Color
@@ -98,7 +136,7 @@ class _SignupScreenState extends State<SignupScreen>
               opacity: _animationController.value,
               duration: const Duration(seconds: 3),
               child: Text(
-                "Welcome to Elite Hospitality",
+                S.current.welcomehosibility,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -179,8 +217,8 @@ class _SignupScreenState extends State<SignupScreen>
                   key: _formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        "Create Your Account",
+                       Text(
+                        S.current.createAccount,
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -191,26 +229,26 @@ class _SignupScreenState extends State<SignupScreen>
 
                       // Name Field
                       _buildTextField(
-                          "Name", Icons.person, (value) => _name = value),
+                          S.current.name, Icons.person, (value) => _name = value),
 
                       const SizedBox(height: 20),
 
                       // Email Field
                       _buildTextField(
-                          "Email", Icons.email, (value) => _email = value),
+                          S.current.email, Icons.email, (value) => _email = value),
 
                       const SizedBox(height: 20),
 
                       // Password Field with Eye Icon
                       _buildTextField(
-                          "Password", Icons.lock, (value) => _password = value,
+                          S.current.password, Icons.lock, (value) => _password = value,
                           isPassword: true),
 
                       const SizedBox(height: 20),
 
                       // Account Type Dropdown
                       DropdownButtonFormField<String>(
-                        decoration: _inputDecoration("Account Type"),
+                        decoration: _inputDecoration(S.current.accountType),
                         dropdownColor: Colors.deepPurple,
                         iconEnabledColor: Color(0xFFDBB017),
                         style: const TextStyle(color: Color(0xFFDBB017)),
@@ -250,8 +288,8 @@ class _SignupScreenState extends State<SignupScreen>
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text(
-                              "Sign Up",
+                            child:  Text(
+                              S.current.signUp,
                               style:
                               TextStyle(fontSize: 18, color: Colors.white),
                             ),
@@ -264,12 +302,12 @@ class _SignupScreenState extends State<SignupScreen>
                             },
                             child: RichText(
                               text: TextSpan(
-                                text: "Already have an account? ",
+                                text: S.current.alreadyHaveAccount,
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 16),
                                 children: [
                                   TextSpan(
-                                    text: "Log in",
+                                    text: S.current.logIn,
                                     style: const TextStyle(
                                       color: Color(0xFFDBB017),
                                       fontWeight: FontWeight.bold,
@@ -291,6 +329,8 @@ class _SignupScreenState extends State<SignupScreen>
       ),
     );
   }
+
+
 
   Widget _buildTextField(
       String label, IconData icon, ValueChanged<String> onChanged,

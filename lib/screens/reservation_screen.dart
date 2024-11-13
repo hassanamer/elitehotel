@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -31,6 +32,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final List<String> _roomTypes = ['Room', 'Suite', 'Mini Suite'];
   String? _selectedRoomType;
   String? _assignedRoomNumber; // To store the assigned room number
+  late DateTime creationDate;
 
   @override
   void initState() {
@@ -114,35 +116,35 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   bool _validateInputs() {
     if (_guestNameController.text.isEmpty) {
-      _showError('Please enter the guest name.');
+      _showError(S.current.enterGuestName);
       return false;
     }
     if (_selectedRoomType == null) {
-      _showError('Please select a room type.');
+      _showError(S.current.selectRoomType);
       return false;
     }
     if (_adultsController.text.isEmpty ||
         int.tryParse(_adultsController.text) == null ||
         int.parse(_adultsController.text) <= 0) {
-      _showError('Please enter a valid number of adults.');
+      _showError(S.current.enterNumOfAdults);
       return false;
     }
     if (_checkInDate == null) {
-      _showError('Please select a check-in date.');
+      _showError(S.current.pleaseCheckinDate);
       return false;
     }
     if (_checkOutDate == null) {
-      _showError('Please select a check-out date.');
+      _showError(S.current.pleaseCheckoutDate);
       return false;
     }
     if (_checkOutDate!.isBefore(_checkInDate!)) {
-      _showError('Check-out date must be after check-in date.');
+      _showError(S.current.pleaseCheckoutDateafter);
       return false;
     }
     if (_amountPaidController.text.isEmpty ||
         double.tryParse(_amountPaidController.text) == null ||
         double.parse(_amountPaidController.text) < 0) {
-      _showError('Please enter a valid amount paid.');
+      _showError(S.current.pleaseamountpaid);
       return false;
     }
     return true;
@@ -169,7 +171,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           _assignedRoomNumber = availableRooms.docs.first['roomNumber'];
         });
       } else {
-        _showError('No available rooms of this type');
+        _showError(S.current.noAvailablerooms);
         _assignedRoomNumber =
         null; // Reset assigned room number if none available
       }
@@ -179,6 +181,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
   }
 
   void _createReservation() async {
+    creationDate = DateTime.now(); // Initialize creationDate here
+
     if (!_validateInputs() || _assignedRoomNumber == null) {
       return; // Don't proceed if validation fails or no room is assigned
     }
@@ -219,6 +223,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           'text': _notesController.text,
           'frequency': _noteFrequency,
         },
+        'creationDate': DateTime.now(),
       });
 
       // Update room status and current guest
@@ -232,7 +237,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reservation created successfully!')),
+        SnackBar(content: Text(S.current.reservationSuccess)),
       );
 
       // Navigate to the invoice preview with the new reservationId as invoice number
@@ -242,12 +247,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
           builder: (context) => InvoiceScreen(
             invoiceNumber: newReservationId,  // Pass the random ID as invoice number
             guestName: _guestNameController.text,
-            roomType: _selectedRoomType ?? 'N/A',
+            roomType: _selectedPackage ?? 'N/A',
             roomNumber: _assignedRoomNumber ?? 'N/A',
             checkInDate: _checkInDate ?? DateTime.now(),
             checkOutDate: _checkOutDate ?? DateTime.now(),
             amountPaid: double.tryParse(_amountPaidController.text) ?? 0.0,
             remainingBalance: _remainingBalance,
+            totalCost: _totalCost,
+            creationDate: creationDate, // Pass the remaining balance
+
           ),
         ),
       ).then((_) {
@@ -260,7 +268,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
   }
 
-
+// Define frequency options with keys and localized values
+  final noteFrequencyOptions = {
+    'justOnce': S.current.justOnce,
+    'daily': S.current.daily,
+  };
 
 
 
@@ -288,7 +300,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Reservation'),
+        title: Text(S.current.reservations),
         backgroundColor: const Color(0xFFDBB017),
       ),
       body: (screenWidth > 600)
@@ -300,7 +312,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _guestNameController,
                 decoration: InputDecoration(
-                  labelText: 'Guest Name',
+                  labelText: S.current.guestName,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -314,7 +326,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   );
                 }).toList(),
                 decoration: InputDecoration(
-                  labelText: 'Select Package',
+                  labelText: S.current.selectPackage,
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
@@ -334,7 +346,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   );
                 }).toList(),
                 decoration: InputDecoration(
-                  labelText: 'Room Type',
+                  labelText: S.current.roomType,
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
@@ -351,7 +363,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: TextField(
                       controller: _adultsController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Adults',
+                        labelText: S.current.numberOfAdults,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
@@ -362,7 +374,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: TextField(
                       controller: _childrenController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Children',
+                        labelText: S.current.numberOfChildren,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
@@ -377,7 +389,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: ListTile(
                       title: Text(
                         _checkInDate == null
-                            ? 'Check-In Date'
+                            ? S.current.checkInDate
                             : DateFormat('yyyy-MM-dd')
                             .format(_checkInDate!),
                       ),
@@ -390,7 +402,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: ListTile(
                       title: Text(
                         _checkOutDate == null
-                            ? 'Check-Out Date'
+                            ? S.current.checkOutDate
                             : DateFormat('yyyy-MM-dd')
                             .format(_checkOutDate!),
                       ),
@@ -404,7 +416,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _amountPaidController,
                 decoration: InputDecoration(
-                  labelText: 'Amount Paid',
+                  labelText: S.current.amountPaid,
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -414,14 +426,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _notesController,
                 decoration: InputDecoration(
-                    labelText: 'Notes (e.g., breakfast request)'),
+                    labelText: S.current.notesBreakfast),
               ),
               DropdownButton<String>(
-                value: _noteFrequency,
-                items: <String>['Just Once', 'Daily'].map((String value) {
+                value: noteFrequencyOptions.keys.contains(_noteFrequency) ? _noteFrequency : 'justOnce', // Fallback if unmatched
+                items: noteFrequencyOptions.keys.map((key) {
                   return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+                    value: key,  // Use the key as the identifier
+                    child: Text(noteFrequencyOptions[key]!),  // Display localized text
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -429,18 +441,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     _noteFrequency = newValue!;
                   });
                 },
-                hint: Text('Select Note Frequency'),
-              ),
-              Row(
+                hint: Text(S.current.selectNoteFrequency),
+              ),              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
+                    '${S.current.totalCost}: \$${_totalCost.toStringAsFixed(2)}',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
+                    '${S.current.remainingBalanceLabel}: \$${_remainingBalance.toStringAsFixed(2)}',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -451,7 +462,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _createReservation,
-                child: Text('Create Reservation'),
+                child: Text(S.current.createReservation),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDBB017)),
               ),
@@ -485,41 +496,45 @@ class _ReservationScreenState extends State<ReservationScreen> {
                               (states) => const Color(0xFFDBB017)),
                       columnSpacing: 12.0,
                       horizontalMargin: 12.0,
-                      columns: const [
+                      columns:  [
                         DataColumn(
-                            label: Text('ReservationId',
+                            label: Text(S.current.reservationId,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Guest Name',
+                            label: Text(S.current.guestName,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Room Type',
+                            label: Text(S.current.roomType,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Room Number',
+                            label: Text(S.current.roomNumber,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Check-In',
+                            label: Text(S.current.checkIn,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Check-Out',
+                            label: Text(S.current.checkOut,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Total Cost',
+                            label: Text(S.current.totalCost,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
                         DataColumn(
-                            label: Text('Remaining',
+                            label: Text(S.current.remainingBalance,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Notes')),
-                        // New column for notes
+                                    fontWeight: FontWeight.bold,fontSize: 13))),
+                        DataColumn(label: Text(S.current.notes, style: TextStyle(
+                            fontWeight: FontWeight.bold,fontSize: 13),)),
+                        DataColumn(label: Text(S.current.invoices, style: TextStyle(
+                            fontWeight: FontWeight.bold,fontSize: 13),),),
+                        DataColumn(label: Text(S.current.actions, style: TextStyle(
+                            fontWeight: FontWeight.bold,fontSize: 13),),),
                       ],
                       rows: reservations.map((reservation) {
                         return DataRow(
@@ -553,6 +568,56 @@ class _ReservationScreenState extends State<ReservationScreen> {
                             )),
                             DataCell(Text(
                                 '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})')), // Show notes with frequency
+                            DataCell(
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => InvoiceScreen(
+                                        invoiceNumber: reservation['reservationId'], // Pass the reservation ID as invoice number
+                                        guestName: reservation['guestName'], // Pass the guest name
+                                        roomType: reservation['roomType'], // Pass the room type
+                                        roomNumber: reservation['roomNumber'], // Pass the room number
+                                        checkInDate: (reservation['checkInDate'] as Timestamp).toDate(), // Pass the check-in date
+                                        checkOutDate: (reservation['checkOutDate'] as Timestamp).toDate(), // Pass the check-out date
+                                        amountPaid: reservation['amountPaid'] ?? 0.0, // Pass the amount paid
+                                        remainingBalance: reservation['remainingBalance'] ?? 0.0, // Pass the remaining balance
+                                        totalCost: reservation['totalCost'] ?? 0.0, // Pass the remaining balance
+                                        creationDate: (reservation['creationDate'] as Timestamp).toDate(), // Pass the creation date
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon:Icon(Icons.insert_chart_outlined_outlined),
+                              ),
+                            ),
+                            DataCell(
+                              IconButton(
+                                onPressed: () async {
+                                  // Delete reservation from Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('reservations')
+                                      .doc(reservation['reservationId'].toString())
+                                      .delete();
+
+                                  // Update room status to Available
+                                  await FirebaseFirestore.instance
+                                      .collection('rooms')
+                                      .doc(reservation['roomNumber'])
+                                      .update({
+                                    'status': 'Available',
+                                    'currentGuest': null, // Clear current guest
+                                  });
+
+                                  // Show success message
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(S.current.reservationDeletedSuccess)),
+                                  );
+                                },
+                                icon: Icon(Icons.delete, color: Colors.red), // Change icon to delete
+                              ),
+                            ),
                           ],
                         );
                       }).toList(),
@@ -572,7 +637,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _guestNameController,
                 decoration: InputDecoration(
-                  labelText: 'Guest Name',
+                  labelText: S.current.guestName,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -586,7 +651,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   );
                 }).toList(),
                 decoration: InputDecoration(
-                  labelText: 'Room Type',
+                  labelText: S.current.roomType,
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
@@ -603,7 +668,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: TextField(
                       controller: _adultsController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Adults',
+                        labelText: S.current.numberOfAdults,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
@@ -614,7 +679,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: TextField(
                       controller: _childrenController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Children',
+                        labelText: S.current.numberOfChildren,
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
@@ -629,7 +694,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: ListTile(
                       title: Text(
                         _checkInDate == null
-                            ? 'Check-In Date'
+                            ? S.current.checkInDate
                             : DateFormat('yyyy-MM-dd')
                             .format(_checkInDate!),
                       ),
@@ -642,7 +707,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     child: ListTile(
                       title: Text(
                         _checkOutDate == null
-                            ? 'Check-Out Date'
+                            ? S.current.checkOutDate
                             : DateFormat('yyyy-MM-dd')
                             .format(_checkOutDate!),
                       ),
@@ -656,7 +721,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _amountPaidController,
                 decoration: InputDecoration(
-                  labelText: 'Amount Paid',
+                  labelText: S.current.amountPaidLabel,
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -666,33 +731,33 @@ class _ReservationScreenState extends State<ReservationScreen> {
               TextField(
                 controller: _notesController,
                 decoration: InputDecoration(
-                    labelText: 'Notes (e.g., breakfast request)'),
+                    labelText: S.current.notesBreakfast),
               ),
               DropdownButton<String>(
-                value: _noteFrequency,
-                items: <String>['Just Once', 'Daily'].map((String value) {
+                // Ensure _noteFrequency is a valid key or fall back to 'justOnce'
+                value: noteFrequencyOptions.containsKey(_noteFrequency) ? _noteFrequency : 'justOnce',
+                items: noteFrequencyOptions.keys.map((key) {
                   return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
+                    value: key,  // Use the key as the value
+                    child: Text(noteFrequencyOptions[key]!),  // Display the localized text
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
                   setState(() {
-                    _noteFrequency = newValue!;
+                    _noteFrequency = newValue!;  // Update with the key only
                   });
                 },
-                hint: Text('Select Note Frequency'),
-              ),
-              Row(
+                hint: Text(S.current.selectNoteFrequency),
+              ),              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
+                    '${S.current.totalCost}: \$${_totalCost.toStringAsFixed(2)}',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
+                    '${S.current.remainingBalance}: \$${_remainingBalance.toStringAsFixed(2)}',
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -703,7 +768,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _createReservation,
-                child: Text('Create Reservation'),
+                child: Text(S.current.createReservation),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDBB017)),
               ),
@@ -743,43 +808,45 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                   (states) => const Color(0xFFDBB017)),
                           columnSpacing: 12.0,
                           horizontalMargin: 12.0,
-                          columns: const [
+                          columns:  [
                             DataColumn(
-                                label: Text('ReservationId',
+                                label: Text(S.current.reservationId,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Guest Name',
+                                label: Text(S.current.guestName,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Room Type',
+                                label: Text(S.current.roomType,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Room Number',
+                                label: Text(S.current.roomNumber,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Check-In',
+                                label: Text(S.current.checkIn,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Check-Out',
+                                label: Text(S.current.checkOut,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Total Cost',
+                                label: Text(S.current.totalCost,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold))),
                             DataColumn(
-                                label: Text('Remaining',
+                                label: Text(S.current.remainingBalanceLabel,
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold),),),
-                            DataColumn(label: Text('Notes', style: TextStyle(
-                                fontWeight: FontWeight.bold),),),
-                            DataColumn(label: Text('Invoices', style: TextStyle(
-                                fontWeight: FontWeight.bold),),),
+                            DataColumn(label: Text(S.current.notes, style: TextStyle(
+                                fontWeight: FontWeight.bold,color: Colors.black),),),
+                            DataColumn(label: Text(S.current.invoices, style: TextStyle(
+                                fontWeight: FontWeight.bold,fontSize: 13),),),
+                            DataColumn(label: Text(S.current.actions, style: TextStyle(
+                                fontWeight: FontWeight.bold,fontSize: 13),),),
                           ],
                           rows: reservations.map((reservation) {
                             return DataRow(
@@ -809,16 +876,58 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                     '\$${reservation['totalCost'].toString()}')),
                                 DataCell(Text(
                                   '\$${reservation['remainingBalance'].toString()}',
-                                  style: TextStyle(color: Colors.red),
+                                  style: TextStyle(color: Colors.black),
                                 )),
-                                DataCell(Text(
-                                    '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})'),), // Show notes with frequency
+                                  DataCell(Text(
+                                      '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})'),), // Show notes with frequency
                                 DataCell(
-                                  ElevatedButton(
+                                  IconButton(
                                     onPressed: () {
-                                      // Add logic to preview or download the invoice
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => InvoiceScreen(
+                                            invoiceNumber: reservation['reservationId'], // Pass the reservation ID as invoice number
+                                            guestName: reservation['guestName'], // Pass the guest name
+                                            roomType: reservation['roomType'], // Pass the room type
+                                            roomNumber: reservation['roomNumber'], // Pass the room number
+                                            checkInDate: (reservation['checkInDate'] as Timestamp).toDate(), // Pass the check-in date
+                                            checkOutDate: (reservation['checkOutDate'] as Timestamp).toDate(), // Pass the check-out date
+                                            amountPaid: (reservation['amountPaid'] ?? 0.0).toDouble(), // Ensure amountPaid is a double
+                                            remainingBalance: (reservation['remainingBalance'] ?? 0.0).toDouble(), // Pass the remaining balance
+                                            totalCost: (reservation['totalCost'] ?? 0.0).toDouble(), // Pass the remaining balance
+                                            creationDate: (reservation['creationDate'] as Timestamp).toDate(), // Pass the creation date
+                                          ),
+                                        ),
+                                      );
                                     },
-                                    child: Text('View Invoice'),
+                                    icon:Icon(Icons.insert_chart_outlined_outlined),
+                                  ),
+                                ),
+                                DataCell(
+                                  IconButton(
+                                    onPressed: () async {
+                                      // Delete reservation from Firestore
+                                      await FirebaseFirestore.instance
+                                          .collection('reservations')
+                                          .doc(reservation['reservationId'].toString())
+                                          .delete();
+
+                                      // Update room status to Available
+                                      await FirebaseFirestore.instance
+                                          .collection('rooms')
+                                          .doc(reservation['roomNumber'])
+                                          .update({
+                                        'status': 'Available',
+                                        'currentGuest': null, // Clear current guest
+                                      });
+
+                                      // Show success message
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(S.current.reservationDeletedSuccess)),
+                                      );
+                                    },
+                                    icon: Icon(Icons.delete, color: Colors.red), // Change icon to delete
                                   ),
                                 ),
                               ],

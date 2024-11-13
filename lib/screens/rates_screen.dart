@@ -1,3 +1,4 @@
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -69,18 +70,18 @@ class _RatesScreenState extends State<RatesScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(docId == null ? 'Add New Rate' : 'Edit Rate'),
+          title: Text(docId == null ? S.current.addNewRate : S.current.editRate),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
                   controller: packageController,
-                  decoration: const InputDecoration(labelText: 'Package'),
+                  decoration:  InputDecoration(labelText: S.current.package),
                   readOnly: docId != null,
                 ),
                 TextField(
                   controller: rateController,
-                  decoration: const InputDecoration(labelText: 'Rate'),
+                  decoration:  InputDecoration(labelText: S.current.rate),
                   keyboardType: TextInputType.number,
                 ),
               ],
@@ -104,7 +105,7 @@ class _RatesScreenState extends State<RatesScreen> {
 
                 Navigator.of(context).pop();
               },
-              child: Text(docId == null ? 'Add' : 'Update'),
+              child: Text(docId == null ? S.current.add : S.current.update),
             ),
             TextButton(
               onPressed: () {
@@ -131,17 +132,31 @@ class _RatesScreenState extends State<RatesScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Rates Management', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        title:  Text(S.current.ratesManagement, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
-            TextButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Add Rate', style: TextStyle(color: Colors.white)),
-              onPressed: () {
-                _showRateDialog();
-              },
-            ),
+            Card(
+              elevation: 2, // Optional: Adjust the elevation for a shadow effect
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12), // Optional: Add rounded corners
+              ),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFDBB017), // Set the background color of the button
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Optional: Add padding for a better look
+                ),
+                icon: const Icon(Icons.add, color: Colors.black),
+                label:  Text(
+                  S.current.addRate,
+                  style: TextStyle(color: Colors.black),
+                ),
+                onPressed: () {
+                  _showRateDialog(); // Show the rate dialog when pressed
+                },
+              ),
+            )
+
         ],
       ),
       body: Padding(
@@ -154,7 +169,7 @@ class _RatesScreenState extends State<RatesScreen> {
                   flex: 3,
                   child: TextField(
                     decoration: InputDecoration(
-                      labelText: 'Search by Package',
+                      labelText: S.current.searchByPackage,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
@@ -180,7 +195,7 @@ class _RatesScreenState extends State<RatesScreen> {
                   }
 
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('${S.current.errorMessage}: ${snapshot.error}'));
                   }
 
                   if (snapshot.hasData) {
@@ -214,10 +229,10 @@ class _RatesScreenState extends State<RatesScreen> {
                         columnSpacing: 20.0,
                         horizontalMargin: 12.0,
                         columns: [
-                          const DataColumn(label: Text('Package', style: TextStyle(fontWeight: FontWeight.bold))),
-                          const DataColumn(label: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold))),
+                           DataColumn(label: Text(S.current.package, style: TextStyle(fontWeight: FontWeight.bold))),
+                           DataColumn(label: Text(S.current.rate, style: TextStyle(fontWeight: FontWeight.bold))),
                           if (userAccountType == 'Admin' || userAccountType == 'Manager')
-                            const DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                             DataColumn(label: Text(S.current.actions, style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: filteredRatesData.map((rate) {
                           String docId = rate['roomType'];

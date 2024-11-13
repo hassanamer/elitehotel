@@ -1,3 +1,4 @@
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to send reset email: $e")),
+        SnackBar(content: Text("${S.current.failedResetEmail}: $e")),
       );
     }
   }
@@ -28,8 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
-          "Settings",
+        title:  Text(
+          S.current.settings,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFFDBB017),
@@ -40,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Reset Password",
+              S.current.resetPassword,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -51,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                labelText: "Enter your email",
+                labelText: S.current.enterEmail,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
                 ),
@@ -70,8 +71,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(12.0),
                   ),
                 ),
-                child: const Text(
-                  "Send Reset Link",
+                child:  Text(
+                  S.current.sendResetLink,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),

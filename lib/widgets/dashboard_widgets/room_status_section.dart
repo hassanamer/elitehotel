@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:elitehotel/widgets/dashboard_widgets/floor_status_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -99,8 +100,8 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Room Status',
+                   Text(
+                     S.current.roomStatus ,
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.black,
@@ -118,11 +119,11 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
                           _buildStatusTileWeb(
-                              "Occupied Rooms",
+                              S.current.occupiedRooms,
                               occupiedCleanRooms.toString(),
                               occupiedDirtyRooms.toString()),
                           _buildStatusTileWeb(
-                              "Available Rooms",
+                              S.current.availableRooms,
                               availableCleanRooms.toString(),
                               availableDirtyRooms.toString()),
                           FloorStatusSection(),

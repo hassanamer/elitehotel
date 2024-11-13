@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -30,6 +31,12 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     });
     _updateRoomStatuses();
   }
+
+  var statusOptions = {
+    'pending': S.current.pending,
+    'inProgress': S.current.inProgress,
+    'completed': S.current.completed,
+  };
 
   Future<void> _fetchDailyReminders() async {
     QuerySnapshot snapshot = await _firestore
@@ -101,7 +108,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Daily Guest Requests',
+            S.current.dailyGuestRequests,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -131,7 +138,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                     size: 30,
                   ),
                   title: Text(
-                    'Room ${reminder['room']}',
+                    '${S.current.room} ${reminder['room']}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -164,25 +171,26 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                           }
                         },
                         child: Text(
-                          reminder['assignedToHK'] ? 'Assigned' : 'Assign to HK',
+                          reminder['assignedToHK'] ? S.current.assigned : S.current.assignedToHk,
                           style: TextStyle(fontSize: 18,color: Colors.white),
                         ),
                       ),
                       SizedBox(width: 20,),
                       DropdownButton<String>(
-                        value: reminder['status'],
-                        items: ['Pending', 'In Progress', 'Completed']
-                            .map((status) => DropdownMenuItem<String>(
-                          value: status,
-                          child: Text(status),
-                        ))
-                            .toList(),
+                        value: statusOptions.keys.contains(reminder['status']) ? reminder['status'] : 'pending', // Fallback to 'pending' if unmatched
+                        items: statusOptions.keys.map((key) {
+                          return DropdownMenuItem<String>(
+                            value: key,
+                            child: Text(statusOptions[key]!),
+                          );
+                        }).toList(),
                         onChanged: (newStatus) {
                           if (newStatus != null) {
                             _updateRequestStatus(reminder['reservationId'], newStatus);
                           }
                         },
                       ),
+
                     ],
                   ),
                 ),
@@ -193,7 +201,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Text(
-                'No requests for today',
+                S.current.noRequestsForToday,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -220,12 +228,12 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text('Front Desk'),
+          title: Text(S.current.frontDesk),
           backgroundColor: const Color(0xFFDBB017),
           bottom: TabBar(
             tabs: [
-              Tab(text: 'Calendar & Rooms'),
-              Tab(text: 'Daily Guest Requests'),
+              Tab(text: S.current.calendar),
+              Tab(text: S.current.dailyGuestRequests),
 
             ],
           ),
@@ -296,7 +304,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     return Column(
       children: [
         Text(
-          'Room Status',
+          S.current.roomStatus,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         Expanded(
@@ -305,7 +313,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
             itemBuilder: (context, index) {
               final room = allRooms[index];
               return ListTile(
-                title: Text('Room ${room['roomNumber']}'),
+                title: Text('${S.current.room} ${room['roomNumber']}'),
                 subtitle: Text(room['status']),
                 tileColor: room['status'] == 'Available'
                     ? Colors.greenAccent.withOpacity(0.2)
@@ -323,7 +331,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       return Appointment(
         startTime: selectedDate,
         endTime: selectedDate.add(Duration(hours: 1)),
-        subject: 'Room ${room['roomNumber']} - ${room['status']}',
+        subject: '${S.current.room} ${room['roomNumber']} - ${room['status']}',
         color: room['status'] == 'Occupied' ? Colors.red : Colors.green,
       );
     }).toList();

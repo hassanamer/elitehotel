@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -14,8 +15,10 @@ class InvoiceScreen extends StatelessWidget {
   final DateTime checkInDate;
   final DateTime checkOutDate;
   final double amountPaid;
+  final double totalCost;
   final double remainingBalance;
   final int invoiceNumber;
+  final DateTime creationDate;
 
   const InvoiceScreen({
     super.key,
@@ -25,7 +28,9 @@ class InvoiceScreen extends StatelessWidget {
     required this.checkInDate,
     required this.checkOutDate,
     required this.amountPaid,
+    required this.totalCost,
     required this.remainingBalance, required this.invoiceNumber,
+    required this.creationDate,
   });
 
   // final String invoiceNumber =
@@ -69,17 +74,15 @@ class InvoiceScreen extends StatelessWidget {
         } else {
           final nightlyRate = snapshot.data!;
           final totalNights = checkOutDate.difference(checkInDate).inDays;
-          final totalCost = nightlyRate *
-              totalNights; // Calculate total cost based on fetched rate
 
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Invoice',
+              title:  Text('Invoices',
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-              backgroundColor: const Color(0xFF1A237E),
+                      color: Colors.black)),
+              backgroundColor: const Color(0xFFDBB017),
               centerTitle: true,
             ),
             body: Padding(
@@ -130,12 +133,18 @@ class InvoiceScreen extends StatelessWidget {
                                 'Check-Out Date',
                                 DateFormat('yyyy-MM-dd').format(checkOutDate),
                                 Icons.calendar_today_outlined),
-                            const SizedBox(height: 10),
+                            _buildDivider(),
+                            _buildInvoiceDetail(
+                                'Creation Date', // Display creation date
+                                DateFormat('yyyy-MM-dd').format(creationDate),
+                                Icons.date_range,
+                                isBold: false),
+                            _buildDivider(),
                             _buildInvoiceDetail(
                                 'Total Cost',
                                 '\$${totalCost.toStringAsFixed(2)}',
                                 Icons.attach_money,
-                                isBold: true),
+                                isBold: false),
                             _buildDivider(),
                             _buildInvoiceDetail(
                                 'Amount Paid',
@@ -354,16 +363,16 @@ class InvoiceScreen extends StatelessWidget {
                             },
                           );
                         },
-                        icon: const Icon(Icons.print),
-                        label: const Text('Print Invoice'),
+                        icon: const Icon(Icons.print,color: Colors.black,),
+                        label: const Text('Print Invoice',style: TextStyle(color: Colors.black),),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A237E),
+                          backgroundColor: const Color(0xFFDBB017),
                           padding: const EdgeInsets.symmetric(
                               vertical: 12, horizontal: 30),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15)),
                           textStyle: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                              fontSize: 18, fontWeight: FontWeight.bold,color: Colors.black),
                         ),
                       ),
                     ),

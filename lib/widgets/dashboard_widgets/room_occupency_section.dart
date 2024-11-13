@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -64,7 +65,7 @@ class _OccupancyStatisticsState extends State<OccupancyStatistics> {
       builder: (BuildContext context) {
         int tempYear = selectedYear;
         return AlertDialog(
-          title: Text('Select Year'),
+          title: Text(S.current.selectYear),
           content: SizedBox(
             height: 100,
             child: Column(
@@ -89,7 +90,7 @@ class _OccupancyStatisticsState extends State<OccupancyStatistics> {
           ),
           actions: [
             TextButton(
-              child: Text('OK'),
+              child: Text(S.current.ok),
               onPressed: () {
                 Navigator.of(context).pop(tempYear);
               },
@@ -124,7 +125,7 @@ class _OccupancyStatisticsState extends State<OccupancyStatistics> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Occupancy Statistics ($selectedYear)',
+                  '${S.current.occupancyStatistics} ($selectedYear)',
                   style:  TextStyle(color:titleColor,fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
@@ -153,9 +154,12 @@ class _OccupancyStatisticsState extends State<OccupancyStatistics> {
                             sideTitles: SideTitles(
                               showTitles: true,
                               getTitlesWidget: (value, meta) {
-                                const months = [
-                                  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                                var months = [
+                                S.current.jan
+                                  , S.current.feb, S.current.mar,S.current.apr, S.current.may
+                                  , S.current.jun,
+                                S.current.jul, S.current.aug, S.current.sep, S.current.oct
+                                  , S.current.nov, S.current.dec
                                 ];
                                 return Text(months[value.toInt()], style: const TextStyle(fontSize: 10));
                               },

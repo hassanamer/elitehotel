@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
 
 class FloorStatusSection extends StatelessWidget {
@@ -51,7 +52,7 @@ class FloorStatusSection extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Floor $floor',
+                            '${S.current.floor} $floor',
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(
@@ -71,14 +72,14 @@ class FloorStatusSection extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const Column(
+                           Column(
                             children: [
                               Row(
                                 children: [
                                   Icon(Icons.circle, color: Colors.red, size: 10),
                                   SizedBox(width: 4),
                                   Text(
-                                    'Occupied',
+                                    S.current.occupied,
                                     style: TextStyle(color: Colors.black),
                                   ),
                                 ],
@@ -89,7 +90,7 @@ class FloorStatusSection extends StatelessWidget {
                                   Icon(Icons.circle, color: Colors.grey, size: 10),
                                   SizedBox(width: 4),
                                   Text(
-                                    'Available',
+                                    S.current.available,
                                     style: TextStyle(color: Colors.black),
                                   ),
                                 ],

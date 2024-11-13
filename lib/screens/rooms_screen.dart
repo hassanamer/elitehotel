@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:elitehotel/widgets/rooms_widgets/add_room_dialouge.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RoomsScreen extends StatefulWidget {
   @override
@@ -19,7 +20,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
     super.initState();
     _fetchUserData();
     _getUserAccountType();
-
   }
 
   Future<void> _fetchUserData() async {
@@ -37,7 +37,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
       if (userQuery.docs.isNotEmpty) {
         final userDoc = userQuery.docs.first;
         setState(() {
-
           userAccountType = userDoc['accountType'];
         });
       }
@@ -66,28 +65,48 @@ class _RoomsScreenState extends State<RoomsScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Room Management',
+        title: Text(
+          S.current.roomManagement,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
-            TextButton.icon(
-            icon: const Icon(Icons.add),
-            label: const Text(
-                'Add Room', style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) =>
-                    AddRoomDialog(onRoomAdded: (room) async {
-                      await FirebaseFirestore.instance.collection('rooms').doc(
-                          room['roomNumber']).set(room);
-                    }),
-              );
-            },
-          ),
+            Card(
+              elevation: 2,
+              // Optional: Adjust the elevation for a shadow effect
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(12), // Optional: Add rounded corners
+              ),
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFDBB017),
+                  // Set the background color of the button
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12), // Optional: Add padding for a better look
+                ),
+                icon: const Icon(Icons.add, color: Colors.black),
+                label: Text(
+                  S.current.addNewRoom,
+                  style: TextStyle(color: Colors.black),
+                ),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AddRoomDialog(
+                      onRoomAdded: (room) async {
+                        await FirebaseFirestore.instance
+                            .collection('rooms')
+                            .doc(room['roomNumber'])
+                            .set(room);
+                      },
+                    ),
+                  );
+                },
+              ),
+            )
         ],
       ),
       body: Padding(
@@ -114,9 +133,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
           child: TextField(
             controller: searchController,
             decoration: InputDecoration(
-              labelText: 'Search by room number, bed type, or floor',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0)),
+              labelText: S.current.searchBy,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
               prefixIcon: const Icon(Icons.search),
             ),
             onChanged: (value) {
@@ -131,14 +150,14 @@ class _RoomsScreenState extends State<RoomsScreen> {
             value: selectedStatus,
             items: [
               'All',
-              'Available',
-              'Occupied',
-              'Maintenance',
-              'Dirty',
-              'Clean'
+              S.current.available,
+    S.current.occupied,
+    S.current.statusMaintenance,
+    S.current.dirty,
+    S.current.clean
             ]
                 .map((status) =>
-                DropdownMenuItem(value: status, child: Text(status)))
+                    DropdownMenuItem(value: status, child: Text(status)))
                 .toList(),
             onChanged: (value) {
               setState(() {
@@ -146,9 +165,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
               });
             },
             decoration: InputDecoration(
-              labelText: 'Filter by Status',
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0)),
+              labelText: S.current.filterByStatus,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
             ),
           ),
         ),
@@ -158,10 +177,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
   // Build the room data table with scrollable functionality
   Widget _buildRoomDataTable() {
-    final screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width; // Get screen width
+    final screenWidth = MediaQuery.of(context).size.width; // Get screen width
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
@@ -170,17 +186,21 @@ class _RoomsScreenState extends State<RoomsScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final roomsData = roomSnapshot.data!.docs.map((doc) =>
-        doc.data() as Map<String, dynamic>).toList();
+        final roomsData = roomSnapshot.data!.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
 
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('reservations').snapshots(),
+          stream:
+              FirebaseFirestore.instance.collection('reservations').snapshots(),
           builder: (context, reservationSnapshot) {
             if (!reservationSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final reservationData = reservationSnapshot.data!.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+            final reservationData = reservationSnapshot.data!.docs
+                .map((doc) => doc.data() as Map<String, dynamic>)
+                .toList();
             final filteredData = _filterRooms(roomsData, reservationData);
 
             // Check screen width to determine layout
@@ -202,18 +222,20 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     ],
                   ),
                   child: DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith((states) => const Color(0xFFDBB017)),
+                    headingRowColor: MaterialStateColor.resolveWith(
+                        (states) => const Color(0xFFDBB017)),
                     columnSpacing: 20.0,
                     horizontalMargin: 12.0,
                     columns: _buildTableColumns(),
                     rows: filteredData.map((room) {
-                      String facilities = (room['roomFacility'] is Map<String, dynamic>)
-                          ? (room['roomFacility'] as Map<String, dynamic>)
-                          .entries
-                          .where((entry) => entry.value == true)
-                          .map((entry) => entry.key)
-                          .join(', ')
-                          : 'None';
+                      String facilities =
+                          (room['roomFacility'] is Map<String, dynamic>)
+                              ? (room['roomFacility'] as Map<String, dynamic>)
+                                  .entries
+                                  .where((entry) => entry.value == true)
+                                  .map((entry) => entry.key)
+                                  .join(', ')
+                              : 'None';
 
                       return DataRow(cells: _buildTableCells(room, facilities));
                     }).toList(),
@@ -226,18 +248,20 @@ class _RoomsScreenState extends State<RoomsScreen> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith((states) => const Color(0xFFDBB017)),
+                    headingRowColor: MaterialStateColor.resolveWith(
+                        (states) => const Color(0xFFDBB017)),
                     columnSpacing: 20.0,
                     horizontalMargin: 12.0,
                     columns: _buildTableColumns(),
                     rows: filteredData.map((room) {
-                      String facilities = (room['roomFacility'] is Map<String, dynamic>)
-                          ? (room['roomFacility'] as Map<String, dynamic>)
-                          .entries
-                          .where((entry) => entry.value == true)
-                          .map((entry) => entry.key)
-                          .join(', ')
-                          : 'None';
+                      String facilities =
+                          (room['roomFacility'] is Map<String, dynamic>)
+                              ? (room['roomFacility'] as Map<String, dynamic>)
+                                  .entries
+                                  .where((entry) => entry.value == true)
+                                  .map((entry) => entry.key)
+                                  .join(', ')
+                              : 'None';
 
                       return DataRow(cells: _buildTableCells(room, facilities));
                     }).toList(),
@@ -253,20 +277,36 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
   // Table column headers
   List<DataColumn> _buildTableColumns() {
-    return const [
-      DataColumn(label: Text('Room Number', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Bed Type', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Room Type', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Room Floor', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Facilities', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Cleaning Status', style: TextStyle(fontWeight: FontWeight.bold))),
-      DataColumn(label: Text('Current Guest', style: TextStyle(fontWeight: FontWeight.bold))),
+    return  [
+      DataColumn(
+          label: Text(S.current.roomNumber,
+              style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label:
+              Text(S.current.bedType, style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label:
+              Text(S.current.roomType, style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label: Text(S.current.roomFloor,
+              style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label: Text(S.current.facilities,
+              style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label: Text(S.current.status, style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label: Text(S.current.cleaningStatus,
+              style: TextStyle(fontWeight: FontWeight.bold))),
+      DataColumn(
+          label: Text(S.current.currentGuest,
+              style: TextStyle(fontWeight: FontWeight.bold))),
     ];
   }
 
   // Table row data based on room and facilities
-  List<DataCell> _buildTableCells(Map<String, dynamic> room, String facilities) {
+  List<DataCell> _buildTableCells(
+      Map<String, dynamic> room, String facilities) {
     return [
       DataCell(Text(room['roomNumber'])),
       DataCell(Text(room['bedType'])),
@@ -287,14 +327,19 @@ class _RoomsScreenState extends State<RoomsScreen> {
     ];
   }
 
-  List<Map<String, dynamic>> _filterRooms(List<Map<String, dynamic>> rooms, List<Map<String, dynamic>> reservations) {
+  List<Map<String, dynamic>> _filterRooms(List<Map<String, dynamic>> rooms,
+      List<Map<String, dynamic>> reservations) {
     DateTime now = DateTime.now();
 
     // Mark each room based on active reservations
     for (var room in rooms) {
-      bool isOccupied = reservations.any((reservation) {
-        DateTime checkInDate = (reservation['checkInDate'] as Timestamp).toDate();
-        DateTime checkOutDate = (reservation['checkOutDate'] as Timestamp).toDate();
+      bool isOccupied = false;
+
+      for (var reservation in reservations) {
+        DateTime checkInDate =
+            (reservation['checkInDate'] as Timestamp).toDate();
+        DateTime checkOutDate =
+            (reservation['checkOutDate'] as Timestamp).toDate();
 
         // Set check-out time to 1 PM
         DateTime checkOutAt1PM = DateTime(
@@ -306,21 +351,17 @@ class _RoomsScreenState extends State<RoomsScreen> {
           0, // 0 seconds
         );
 
+        // Check if room has an active reservation for today
         if (reservation['roomNumber'] == room['roomNumber'] &&
-            now.isAfter(checkInDate) && now.isBefore(checkOutDate)) {
+            now.isAfter(checkInDate) &&
+            now.isBefore(checkOutAt1PM)) {
           room['status'] = 'Occupied';
-          return true;
+          isOccupied = true;
+          break;
         }
+      }
 
-        if (reservation['roomNumber'] == room['roomNumber'] && now.isAfter(checkOutAt1PM)) {
-          FirebaseFirestore.instance.collection('rooms').doc(room['roomNumber']).update({
-            'status': 'Available',
-          });
-        }
-
-        return false;
-      });
-
+      // Set room to 'Available' if no active reservation for today
       if (!isOccupied) {
         room['status'] = 'Available';
       }
@@ -334,10 +375,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
       // Filter rooms by search keyword (room number, bed type, or floor)
       String searchText = searchController.text.toLowerCase();
-      return room['roomNumber']
-          .toString()
-          .toLowerCase()
-          .contains(searchText) ||
+      return room['roomNumber'].toString().toLowerCase().contains(searchText) ||
           room['bedType'].toString().toLowerCase().contains(searchText) ||
           room['roomFloor'].toString().toLowerCase().contains(searchText);
     }).toList();
