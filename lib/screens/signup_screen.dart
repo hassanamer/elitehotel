@@ -43,7 +43,8 @@ class _SignupScreenState extends State<SignupScreen>
     Locale newLocale = Localizations.localeOf(context).languageCode == 'en'
         ? const Locale('ar', 'SA')
         : const Locale('en', 'US');
-    MyApp.setLocale(newLocale); // Use the static method to change the locale
+    MyApp.
+    setLocale(newLocale); // Use the static method to change the locale
   }
 
   Future<void> _registerUser() async {

@@ -8,7 +8,6 @@ import 'package:elitehotel/screens/dashboard_screen.dart';
 import 'package:elitehotel/screens/front_desk_screen.dart';
 import 'package:elitehotel/screens/guest_screen.dart';
 import 'package:elitehotel/screens/hk_screen.dart';
-import 'package:elitehotel/screens/invoices_screen.dart';
 import 'package:elitehotel/screens/login_screen.dart';
 import 'package:elitehotel/screens/rates_screen.dart';
 import 'package:elitehotel/screens/reservation_screen.dart';
@@ -21,6 +20,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'generated/l10n.dart';
@@ -46,12 +46,39 @@ Future<void> initializeFirebase() async {
   }
 }
 
-// Background service entry point
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  Timer.periodic(const Duration(minutes: 1), (_) async => await checkRoomAvailability());
-}
+  // Create an initial notification to start the service in the foreground
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  FlutterLocalNotificationsPlugin();
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+  AndroidNotificationDetails(
+      'foreground_channel_id', 'Foreground Service',
+      channelDescription: 'This notification keeps the background service running.',
+      importance: Importance.low,
+      priority: Priority.low,
+      showWhen: false);
+  const NotificationDetails platformChannelSpecifics =
+  NotificationDetails(android: androidPlatformChannelSpecifics);
 
+  // Display the notification immediately to start the service in foreground
+  await flutterLocalNotificationsPlugin.show(
+      0,
+      'Elite Hotel Service',
+      'Background service running...',
+      platformChannelSpecifics);
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  Timer.periodic(const Duration(minutes: 1), (_) async {
+    try {
+      await checkRoomAvailability();
+    } catch (e) {
+      print("Error checking room availability: $e");
+    }
+  });
+}
 Future<void> checkRoomAvailability() async {
   final roomCollection = FirebaseFirestore.instance.collection('rooms');
   final reservationCollection = FirebaseFirestore.instance.collection('reservations');
@@ -76,19 +103,21 @@ Future<void> updateRoomStatus(String roomNumber, DateTime now, CollectionReferen
 }
 
 class MyApp extends StatefulWidget {
-  MyApp({Key? key}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);  // Ensure the constructor accepts key
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  _MyAppState createState() => _MyAppState();
 
   // Add a static method to access the setLocale
   static void setLocale(Locale locale) {
     myAppKey.currentState?._setLocale(locale);
   }
 
+
 }
+
 class _MyAppState extends State<MyApp> {
-  Locale _locale = const Locale('ar');
+  Locale _locale = Locale('en');  // Default locale is English
 
   void _setLocale(Locale locale) {
     setState(() {
@@ -96,12 +125,10 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      locale: _locale,
+      locale: _locale,  // Set locale directly on MaterialApp
       localizationsDelegates: [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -110,12 +137,23 @@ class _MyAppState extends State<MyApp> {
       ],
       supportedLocales: S.delegate.supportedLocales,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue, primaryColor: Colors.white),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        primaryColor: Colors.white,
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(
+            fontFamily: _locale.languageCode == 'ar' ? 'Amiri' : 'Helvetica',
+          ),
+          bodyMedium: TextStyle(
+            fontFamily: _locale.languageCode == 'ar' ? 'Amiri' : 'Playfair',
+          ),
+        ),
+      ),
       initialRoute: '/login',
       routes: {
         '/': (context) => SignupScreen(),
         '/login': (context) => LoginScreen(),
-        '/main': (context) => MainScreen(onLocaleChange: _setLocale), // Pass the locale change function
+        '/main': (context) => MainScreen(onLocaleChange: _setLocale),
         '/dashboard': (context) => DashboardScreen(),
         '/frontDesk': (context) => FrontDeskScreen(),
         '/housekeeping': (context) => HKScreen(),
@@ -129,6 +167,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
 
 class MainScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange; // Accept the locale change function

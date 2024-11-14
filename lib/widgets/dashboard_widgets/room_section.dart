@@ -97,8 +97,8 @@ class _RoomsSectionState extends State<RoomsSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Rooms',
+               Text(
+               S.current.rooms,
                 style: TextStyle(
                   fontSize: 20,
                   color: Colors.black,

@@ -150,8 +150,8 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Room Status',
+                   Text(
+                   S.current.roomStatus,
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.black,
@@ -185,13 +185,13 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                                   switch (index) {
                                     case 0:
                                       return _buildStatusTile(
-                                        "Occupied Rooms",
+                                        S.current.occupiedRooms,
                                         occupiedCleanRooms.toString(),
                                         occupiedDirtyRooms.toString(),
                                       );
                                     case 1:
                                       return _buildStatusTile(
-                                        "Available Rooms",
+                                       S.current.availableRooms,
                                         availableCleanRooms.toString(),
                                         availableDirtyRooms.toString(),
                                       );
@@ -201,8 +201,8 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                             ),
                             const SizedBox(height: 12),
                             const Divider(), // Optional: To separate Floor Status visually
-                            const Text(
-                              'Floor Status',
+                             Text(
+                              S.current.floorStatus,
                               style: TextStyle(
                                 fontSize: 20,
                                 color: Colors.black,
@@ -252,7 +252,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Clean", style: TextStyle(color: Colors.black)),
+                   Text(S.current.clean, style: TextStyle(color: Colors.black)),
                   Text(
                     clean,
                     style: TextStyle(
@@ -264,7 +264,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Dirty", style: TextStyle(color: Colors.black)),
+                   Text(S.current.dirty, style: TextStyle(color: Colors.black)),
                   Text(
                     dirty,
                     style: TextStyle(
@@ -306,7 +306,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Clean", style: TextStyle(color: Colors.black)),
+                     Text(S.current.clean, style: TextStyle(color: Colors.black)),
                     Text(
                       clean,
                       style: TextStyle(color: cleanColor, fontWeight: FontWeight.bold),
@@ -317,7 +317,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Dirty", style: TextStyle(color: Colors.black)),
+                     Text(S.current.dirty, style: TextStyle(color: Colors.black)),
                     Text(
                       dirty,
                       style: TextStyle(color: dirtyColor, fontWeight: FontWeight.bold),
