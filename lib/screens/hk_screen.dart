@@ -25,12 +25,12 @@ class _HKScreenState extends State<HKScreen> {
   String hkName = "";
   String _location = "Unknown";
   String? userAccountType;
+  bool _isPunchInButtonEnabled = true; // Flag to control button state
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
-    _checkForTodayAttendance();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocationServices();
     });
@@ -66,7 +66,15 @@ class _HKScreenState extends State<HKScreen> {
           hkName = userDoc['name'];
           userAccountType = userDoc['accountType'];
         });
+        print("Current user id: $hkUserId"); // Ensure this prints the correct user ID
+
+        // Call _checkForTodayAttendance after setting hkUserId
+        await _checkForTodayAttendance();
+      } else {
+        print("No user found with the email: $email");
       }
+    } else {
+      print("No user is currently logged in.");
     }
   }
 
@@ -79,11 +87,21 @@ class _HKScreenState extends State<HKScreen> {
 
   Future<void> _checkForTodayAttendance() async {
     final today = DateTime.now();
+    final startOfDay = DateTime.utc(today.year, today.month, today.day);
+    final endOfDay = DateTime.utc(today.year, today.month, today.day, 23, 59, 59);
+
+    print("Checking attendance for user: $hkUserId");
+    print("Start of Day: $startOfDay");
+    print("End of Day: $endOfDay");
+
     final attendanceSnapshot = await _firestore
         .collection('attendance')
-        .where('hkUserId', isEqualTo: hkUserId)
-        .where('checkInTime', isGreaterThan: DateTime(today.year, today.month, today.day))
+        .where('hkUserId', isEqualTo: hkUserId) // Use dynamic hkUserId
+        .where('checkInTime', isGreaterThanOrEqualTo: startOfDay)
+        .where('checkInTime', isLessThanOrEqualTo: endOfDay)
         .get();
+
+    print("Attendance documents found: ${attendanceSnapshot.docs.length}"); // Debug print
 
     if (attendanceSnapshot.docs.isNotEmpty) {
       final doc = attendanceSnapshot.docs.first;
@@ -93,6 +111,15 @@ class _HKScreenState extends State<HKScreen> {
         _checkOutTime = doc['checkOutTime'] != null ? (doc['checkOutTime'] as Timestamp).toDate() : null;
         _workingHours = _checkOutTime != null ? _checkOutTime!.difference(_checkInTime!) : null;
         _location = doc['checkInLocation'] ?? "Unknown";
+      });
+    } else {
+      print("No attendance found for today."); // Debug print
+      setState(() {
+        _isCheckedIn = false;
+        _checkInTime = null;
+        _checkOutTime = null;
+        _workingHours = null;
+        _location = "Unknown"; // or any default value
       });
     }
   }
@@ -114,6 +141,7 @@ class _HKScreenState extends State<HKScreen> {
       setState(() {
         _isCheckedIn = true;
         _location = placeName;
+        _isPunchInButtonEnabled = false; // Disable the button
       });
 
       await _firestore.collection('attendance').add({
@@ -128,9 +156,38 @@ class _HKScreenState extends State<HKScreen> {
           'longitude': position.longitude,
         },
       });
+
+      // Delay for 1 minute before enabling the button again
+      Future.delayed(Duration(minutes: 1), () {
+        setState(() {
+          _isPunchInButtonEnabled = true; // Re-enable the button after 1 minute
+        });
+      });
     } else {
       _showMessage(S.current.youHaveAlreadyCheckedIn);
     }
+  }
+
+  Widget buildCheckInOutButton() {
+    return SizedBox(
+      width: 140,
+      height: 140,
+      child: ElevatedButton(
+        onPressed: _isPunchInButtonEnabled ? (_isCheckedIn ? _checkOut : _checkIn) : null, // Disable button if not enabled
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _isCheckedIn ? Colors.red : Colors.green,
+          shape: CircleBorder(),
+        ),
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            _isCheckedIn ? S.current.punchOut : S.current.punchIn,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _checkOut() async {
@@ -180,6 +237,7 @@ class _HKScreenState extends State<HKScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      _showMessage('Location services are disabled.');
       return Future.error('Location services are disabled.');
     }
 
@@ -187,15 +245,22 @@ class _HKScreenState extends State<HKScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
+        _showMessage('Location permissions are denied');
         return Future.error('Location permissions are denied');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
+      _showMessage('Location permissions are permanently denied, we cannot request permissions.');
       return Future.error('Location permissions are permanently denied, we cannot request permissions.');
     }
 
-    return await Geolocator.getCurrentPosition();
+    try {
+      return await Geolocator.getCurrentPosition();
+    } catch (e) {
+      _showMessage('Failed to get current location: $e');
+      return Future.error('Failed to get current location: $e');
+    }
   }
 
   void _showMessage(String message) {
@@ -294,30 +359,27 @@ class _HKScreenState extends State<HKScreen> {
     await _firestore.collection('requests').doc(requestId).update({'status': status});
   }
 
-
-
-  Widget buildCheckInOutButton() {
-    return SizedBox(
-      width: 140,
-      height: 140,
-      child: ElevatedButton(
-        onPressed: _isCheckedIn ? _checkOut : _checkIn,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _isCheckedIn ? Colors.red : Colors.green,
-          shape: CircleBorder(),
-        ),
-        child: Align(
-          alignment: Alignment.center,
-          child: Text(
-            _isCheckedIn ? S.current.punchOut : S.current.punchIn,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-
-  }
+  // Widget buildCheckInOutButton() {
+  //   return SizedBox(
+  //     width: 140,
+  //     height: 140,
+  //     child: ElevatedButton(
+  //       onPressed: _isCheckedIn ? _checkOut : _checkIn,
+  //       style: ElevatedButton.styleFrom(
+  //         backgroundColor: _isCheckedIn ? Colors.red : Colors.green,
+  //         shape: CircleBorder(),
+  //       ),
+  //       child: Align(
+  //         alignment: Alignment.center,
+  //         child: Text(
+  //           _isCheckedIn ? S.current.punchOut : S.current.punchIn,
+  //           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  //           textAlign: TextAlign.center,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget buildRoomsPage() {
     return StreamBuilder<QuerySnapshot>(
@@ -388,30 +450,29 @@ class _HKScreenState extends State<HKScreen> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: requestController,
-            decoration: InputDecoration(
-              labelText: S.current.addRequest,
-              border: OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.send),
-                onPressed: () {
-                  if (requestController.text.isNotEmpty) {
-                    _addRequest(requestController.text);
-                    requestController.clear();
-                  }
-                },
+        if (userAccountType == 'HK Staff')
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: requestController,
+              decoration: InputDecoration(
+                labelText: S.current.addRequest,
+                border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: () {
+                    if (requestController.text.isNotEmpty) {
+                      _addRequest(requestController.text);
+                      requestController.clear();
+                    }
+                  },
+                ),
               ),
             ),
           ),
-        ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('requests')
-                .snapshots(),
+            stream: _firestore.collection('requests').snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return CircularProgressIndicator();
 
@@ -421,12 +482,29 @@ class _HKScreenState extends State<HKScreen> {
                   String description = doc['description'];
                   String status = doc['status'];
 
+                  // Map status to localized text
+                  String localizedStatus;
+                  switch (status) {
+                    case 'Pending':
+                      localizedStatus = S.current.pending;
+                      break;
+                    case 'In Progress':
+                      localizedStatus = S.current.inProgress;
+                      break;
+                    case 'Completed':
+                      localizedStatus = S.current.completed;
+                      break;
+                    default:
+                      localizedStatus = status; // Fallback to raw status if not recognized
+                  }
+
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     child: ListTile(
                       title: Text(description),
-                      subtitle: Text('${S.current.status}: $status'),
-                      trailing: DropdownButton<String>(
+                      subtitle: Text('${S.current.status}: $localizedStatus'),
+                      trailing: userAccountType == 'HK Staff'
+                          ? DropdownButton<String>(
                         value: status,
                         items: [
                           DropdownMenuItem(
@@ -447,7 +525,8 @@ class _HKScreenState extends State<HKScreen> {
                             await _updateRequestStatus(requestId, newStatus);
                           }
                         },
-                      ),
+                      )
+                          : Text(localizedStatus,style: TextStyle(fontSize:16,fontWeight: FontWeight.bold ),), // Show localized status for non-HK staff
                     ),
                   );
                 }).toList(),
@@ -458,6 +537,7 @@ class _HKScreenState extends State<HKScreen> {
       ],
     );
   }
+
   Future<void> _updateNoteStatus(String reservationId, String newStatus) async {
     await _firestore.collection('reservations').doc(reservationId).update({
       'notes.status': newStatus,
@@ -474,11 +554,47 @@ class _HKScreenState extends State<HKScreen> {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(child: Text(S.current.noassignednotes));
         }
-
         return ListView.builder(
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
             var note = snapshot.data![index];
+            String? status = note['status'];
+
+            // Validate status and default to 'Pending' if it's an unexpected value
+            if (status != 'Pending' && status != 'In Progress' && status != 'Completed') {
+              status = 'Pending';
+            }
+
+            // Map status to localized text
+            String localizedStatus;
+            switch (status) {
+              case 'Pending':
+                localizedStatus = S.current.pending;
+                break;
+              case 'In Progress':
+                localizedStatus = S.current.inProgress;
+                break;
+              case 'Completed':
+                localizedStatus = S.current.completed;
+                break;
+              default:
+                localizedStatus = status ?? ''; // Fallback to empty if null
+            }
+
+            // Map frequency to localized text
+            String frequency = note['frequency'];
+            String localizedFrequency;
+            switch (frequency) {
+              case 'Daily':
+                localizedFrequency = S.current.daily;
+                break;
+              case 'Once':
+                localizedFrequency = S.current.justOnce;
+                break;
+              default:
+                localizedFrequency = frequency; // Fallback to raw value if not recognized
+            }
+
             return Card(
               margin: EdgeInsets.all(8),
               child: ListTile(
@@ -489,28 +605,33 @@ class _HKScreenState extends State<HKScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Frequency: ${note['frequency']}'),
-                    Text('Guest: ${note['guestName']}'),
-                    Text('Room: ${note['roomNumber']}'),
+                    Text('${S.current.frequency}: $localizedFrequency'),
+                    Text('${S.current.guestNameLabel}: ${note['guestName']}'),
+                    Text('${S.current.room}: ${note['roomNumber']}'),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        if (userAccountType == 'HK Staff')
-                        Text('${S.current.status}:'),
-                        if (userAccountType == 'HK Staff')
-                          DropdownButton<String>(
-                          value: note['status'] ?? 'Pending', // Provide a default value
-                          items: [S.current.pending, S.current.inProgress, S.current.completed]
-                              .map((String status) {
-                            return DropdownMenuItem<String>(
-                              value: status,
-                              child: Text(status),
-                            );
-                          }).toList(),
-                          onChanged: (newStatus) async {
-                            if (newStatus != null) {
+                        Text('${S.current.status}: $localizedStatus'),
+                        DropdownButton<String>(
+                          value: status, // Ensure value matches one of the items
+                          items: [
+                            DropdownMenuItem(
+                              value: 'Pending',
+                              child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+                            ),
+                            DropdownMenuItem(
+                              value: 'In Progress',
+                              child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Completed',
+                              child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
+                            ),
+                          ],
+                          onChanged: (String? newStatus) async {
+                            if (newStatus != null && newStatus != status) {
                               await _updateNoteStatus(note['reservationId'], newStatus);
-                              setState(() {}); // Refresh the UI after updating
+                              setState(() {}); // Refresh the UI only after updating
                             }
                           },
                         ),
@@ -525,6 +646,7 @@ class _HKScreenState extends State<HKScreen> {
       },
     );
   }
+
 
   Future<List<Map<String, dynamic>>> _fetchAssignedNotes() async {
     final notesSnapshot = await _firestore
@@ -570,7 +692,7 @@ class _HKScreenState extends State<HKScreen> {
       body: PageView(
         controller: _pageController,
         children: [
-          if (userAccountType != 'Front Desk')
+          if (userAccountType == 'HK Staff')
             SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -578,8 +700,7 @@ class _HKScreenState extends State<HKScreen> {
                   buildAttendanceInfo(),
                   buildCheckInOutInfo(),
                   const SizedBox(height: 20),
-                  if (userAccountType == 'Admin' || userAccountType == 'Manager' || userAccountType == 'HK Staff')
-                    buildCheckInOutButton(),
+                  buildCheckInOutButton(), // Show button for HK Staff
                 ],
               ),
             ),
@@ -593,20 +714,21 @@ class _HKScreenState extends State<HKScreen> {
         unselectedItemColor: Colors.black,
         unselectedLabelStyle: TextStyle(color: Colors.black),
         items: [
-          if (userAccountType != 'Front Desk')
-             BottomNavigationBarItem(
+          // Only show the attendance tab for HK Staff
+          if (userAccountType == 'HK Staff')
+            BottomNavigationBarItem(
               icon: Icon(Icons.home, color: Color(0xFFDBB017)),
               label: S.current.homeTitle,
             ),
-           BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.room_service, color: Color(0xFFDBB017)),
             label: S.current.rooms,
           ),
-           BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.list, color: Color(0xFFDBB017)),
             label: S.current.requests,
           ),
-           BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.event_note_sharp, color: Color(0xFFDBB017)),
             label: S.current.assignedNotes,
           ),

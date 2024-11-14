@@ -12,6 +12,7 @@ class InvoiceScreen extends StatelessWidget {
   final String guestName;
   final String roomType;
   final String roomNumber;
+  final String? paymentMethod;
   final DateTime checkInDate;
   final DateTime checkOutDate;
   final double amountPaid;
@@ -26,6 +27,7 @@ class InvoiceScreen extends StatelessWidget {
     required this.roomType,
     required this.roomNumber,
     required this.checkInDate,
+    required this.paymentMethod,
     required this.checkOutDate,
     required this.amountPaid,
     required this.totalCost,
@@ -122,6 +124,9 @@ class InvoiceScreen extends StatelessWidget {
                                 'Room Type', roomType, Icons.king_bed),
                             _buildDivider(),
                             _buildInvoiceDetail('Room Number', roomNumber,
+                                Icons.door_front_door),
+                            _buildDivider(),
+                            _buildInvoiceDetail('Payment Method', paymentMethod!,
                                 Icons.door_front_door),
                             _buildDivider(),
                             _buildInvoiceDetail(
@@ -232,7 +237,7 @@ class InvoiceScreen extends StatelessWidget {
                                         pw.Table(
                                           border: pw.TableBorder.symmetric(
                                             inside: pw.BorderSide(
-                                                width: 0.5,
+                                                width: 0.7,
                                                 color: PdfColors.grey),
                                             outside: pw.BorderSide(
                                                 width: 1,
@@ -244,7 +249,7 @@ class InvoiceScreen extends StatelessWidget {
                                                 pw.Padding(
                                                   padding:
                                                       const pw.EdgeInsets.all(
-                                                          8.0),
+                                                          5.0),
                                                   child: pw.Text('Item',
                                                       style: pw.TextStyle(
                                                           fontWeight: pw
@@ -254,7 +259,7 @@ class InvoiceScreen extends StatelessWidget {
                                                 pw.Padding(
                                                   padding:
                                                       const pw.EdgeInsets.all(
-                                                          8.0),
+                                                          5.0),
                                                   child: pw.Text('Quantity',
                                                       style: pw.TextStyle(
                                                           fontWeight: pw
@@ -264,7 +269,7 @@ class InvoiceScreen extends StatelessWidget {
                                                 pw.Padding(
                                                   padding:
                                                       const pw.EdgeInsets.all(
-                                                          8.0),
+                                                          5.0),
                                                   child: pw.Text('Night Price',
                                                       style: pw.TextStyle(
                                                           fontWeight: pw
@@ -274,7 +279,7 @@ class InvoiceScreen extends StatelessWidget {
                                                 pw.Padding(
                                                   padding:
                                                       const pw.EdgeInsets.all(
-                                                          8.0),
+                                                          5.0),
                                                   child: pw.Text('Total Cost',
                                                       style: pw.TextStyle(
                                                           fontWeight: pw
@@ -284,10 +289,21 @@ class InvoiceScreen extends StatelessWidget {
                                                 pw.Padding(
                                                   padding:
                                                       const pw.EdgeInsets.all(
-                                                          8.0),
+                                                          5.0),
                                                   child: pw.Text('Remaining',
                                                       style: pw.TextStyle(
                                                           color: PdfColors.red,
+                                                          fontWeight: pw
+                                                              .FontWeight
+                                                              .bold)),
+                                                ),
+                                                pw.Padding(
+                                                  padding:
+                                                  const pw.EdgeInsets.all(
+                                                      5.0),
+                                                  child: pw.Text('Payment Method',
+                                                      style: pw.TextStyle(
+                                                          color: PdfColors.black,
                                                           fontWeight: pw
                                                               .FontWeight
                                                               .bold)),
@@ -330,6 +346,16 @@ class InvoiceScreen extends StatelessWidget {
                                                           8.0),
                                                   child: pw.Text(
                                                       '\$${remainingBalance.toStringAsFixed(2)}',
+                                                      style: pw.TextStyle(
+                                                          color: PdfColors
+                                                              .red)), // Total Cost
+                                                ),
+                                                pw.Padding(
+                                                  padding:
+                                                  const pw.EdgeInsets.all(
+                                                      8.0),
+                                                  child: pw.Text(
+                                                      '${paymentMethod}',
                                                       style: pw.TextStyle(
                                                           color: PdfColors
                                                               .red)), // Total Cost

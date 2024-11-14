@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/firebase_options.dart';
+import 'package:elitehotel/screens/accounts_screen.dart';
 import 'package:elitehotel/screens/dashboard_screen.dart';
 import 'package:elitehotel/screens/front_desk_screen.dart';
 import 'package:elitehotel/screens/guest_screen.dart';
@@ -48,7 +49,7 @@ Future<void> initializeFirebase() async {
 // Background service entry point
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  Timer.periodic(const Duration(hours: 10), (_) async => await checkRoomAvailability());
+  Timer.periodic(const Duration(minutes: 1), (_) async => await checkRoomAvailability());
 }
 
 Future<void> checkRoomAvailability() async {
@@ -123,6 +124,7 @@ class _MyAppState extends State<MyApp> {
         '/rates': (context) => RatesScreen(),
         '/reservations': (context) => ReservationScreen(),
         '/settings': (context) => SettingsScreen(),
+        '/accounts': (context) => AccountsScreen(),
       },
     );
   }
@@ -182,7 +184,7 @@ class _MainScreenState extends State<MainScreen> {
       );
       service.startService();
     } else {
-      periodicTimer = Timer.periodic(const Duration(hours: 10), (_) async => await checkRoomAvailability());
+      periodicTimer = Timer.periodic(const Duration(minutes: 1), (_) async => await checkRoomAvailability());
     }
   }
 
@@ -213,6 +215,7 @@ class _MainScreenState extends State<MainScreen> {
           RatesScreen(),
           ReservationScreen(),
           SettingsScreen(),
+          AccountsScreen(),
         ];
       case 'Front Desk':
         return [

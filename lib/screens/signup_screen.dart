@@ -14,7 +14,8 @@ class _SignupScreenState extends State<SignupScreen>
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  final List<String> adminEmails = ['hassanamer281@gmail.com', 'behery_75@hotmail.com','hassanamer6543@gmail.com'];
+  final List<String> managerEmails = ['hassanamer281@gmail.com', 'behery_75@hotmail.com','shepsishepsi66@gmail.com'];
   String _name = '';
   String _email = '';
   String _password = '';
@@ -48,27 +49,67 @@ class _SignupScreenState extends State<SignupScreen>
   Future<void> _registerUser() async {
     if (_formKey.currentState!.validate()) {
       try {
-        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-          email: _email,
-          password: _password,
-        );
+        // Fetch users with Admin and Manager roles
+        QuerySnapshot adminSnapshot = await _firestore
+            .collection('users')
+            .where('accountType', isEqualTo: 'Admin')
+            .get();
+        QuerySnapshot managerSnapshot = await _firestore
+            .collection('users')
+            .where('accountType', isEqualTo: 'Manager')
+            .get();
 
-        // Get the user's UID
-        String userId = userCredential.user!.uid;
+        // Check if the email is in the list of Admins or Managers
+        bool isAdminEmail = adminSnapshot.docs.any((doc) => doc['email'] == _email);
+        bool isManagerEmail = managerSnapshot.docs.any((doc) => doc['email'] == _email);
 
-        // Store user data in Firestore with the unique userID
-        await _firestore.collection('users').doc(userId).set({
-          'userID': userId,  // Add unique userID
-          'name': _name,
-          'email': _email,
-          'accountType': _accountType,
-        });
+        if ((_accountType == 'Admin' && !isAdminEmail) ||
+            (_accountType == 'Manager' && !isManagerEmail)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Unauthorized email for $_accountType role')),
+          );
+          return; // Exit if unauthorized
+        }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully!')),
-        );
+        // Check if the email already exists in the Firestore users collection
+        QuerySnapshot snapshot = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: _email)
+            .get();
 
-        // Navigate to the main screen after successful signup
+        if (snapshot.docs.isNotEmpty) {
+          // Update the existing user document with new data
+          String existingUserId = snapshot.docs.first.id;
+
+          await _firestore.collection('users').doc(existingUserId).update({
+            'name': _name,
+            'accountType': _accountType,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account updated successfully!')),
+          );
+        } else {
+          // Create a new user if email doesn't exist in the collection
+          UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+            email: _email,
+            password: _password,
+          );
+
+          // Store user data in Firestore
+          await _firestore.collection('users').doc(userCredential.user!.uid).set({
+            'userID': userCredential.user!.uid,
+            'name': _name,
+            'email': _email,
+            'accountType': _accountType,
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account created successfully!')),
+          );
+        }
+
+        // Navigate to the main screen after successful signup or update
         Navigator.of(context).pushReplacementNamed('/main');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +118,7 @@ class _SignupScreenState extends State<SignupScreen>
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

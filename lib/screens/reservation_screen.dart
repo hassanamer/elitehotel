@@ -19,7 +19,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final TextEditingController _amountPaidController = TextEditingController();
   final TextEditingController _notesController =
   TextEditingController(); // Notes controller
-
+  String? _selectedPaymentMethod; // Variable to hold the selected payment method
+  final List<String> _paymentMethods = [S.current.cash, S.current.bank, S.current.visa, S.current.instapay]; // List of payment methods
 
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
@@ -219,9 +220,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'amountPaid': double.tryParse(_amountPaidController.text) ?? 0.0,
         'totalCost': _totalCost,
         'remainingBalance': _remainingBalance,
+        'paymentMethod': _selectedPaymentMethod, // Add the selected payment method
         'notes': {
           'text': _notesController.text,
           'frequency': _noteFrequency,
+          'status': S.current.pending,
         },
         'creationDate': DateTime.now(),
       });
@@ -245,6 +248,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => InvoiceScreen(
+            paymentMethod: _selectedPaymentMethod,
             invoiceNumber: newReservationId,  // Pass the random ID as invoice number
             guestName: _guestNameController.text,
             roomType: _selectedPackage ?? 'N/A',
@@ -423,6 +427,26 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 onChanged: (value) => _calculateTotalCost(),
               ),
               const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedPaymentMethod,
+                items: _paymentMethods.map((method) {
+                  return DropdownMenuItem(
+                    value: method,
+                    child: Text(method),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  labelText: S.current.paymenMethod, // Add localization if needed
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPaymentMethod = value; // Update selected payment method
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+
               TextField(
                 controller: _notesController,
                 decoration: InputDecoration(
@@ -575,6 +599,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => InvoiceScreen(
+                                        paymentMethod: reservation['paymentMethod'],
                                         invoiceNumber: reservation['reservationId'], // Pass the reservation ID as invoice number
                                         guestName: reservation['guestName'], // Pass the guest name
                                         roomType: reservation['roomType'], // Pass the room type
@@ -887,6 +912,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => InvoiceScreen(
+                                            paymentMethod: reservation['paymentMethod'],
                                             invoiceNumber: reservation['reservationId'], // Pass the reservation ID as invoice number
                                             guestName: reservation['guestName'], // Pass the guest name
                                             roomType: reservation['roomType'], // Pass the room type
