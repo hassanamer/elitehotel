@@ -62,6 +62,13 @@ class _RatesScreenState extends State<RatesScreen> {
     });
   }
 
+  Future<void> _deleteRate(String docId) async {
+    await _firestore.collection('rates').doc(docId).delete();
+    setState(() {
+      ratesData.removeWhere((rate) => rate['roomType'] == docId);
+    });
+  }
+
   void _showRateDialog({Map<String, dynamic>? rate, String? docId}) {
     final packageController = TextEditingController(text: rate?['roomType'] ?? '');
     final rateController = TextEditingController(text: rate?['rate']?.toString() ?? '');
@@ -76,12 +83,12 @@ class _RatesScreenState extends State<RatesScreen> {
               children: [
                 TextField(
                   controller: packageController,
-                  decoration:  InputDecoration(labelText: S.current.package),
+                  decoration: InputDecoration(labelText: S.current.package),
                   readOnly: docId != null,
                 ),
                 TextField(
                   controller: rateController,
-                  decoration:  InputDecoration(labelText: S.current.rate),
+                  decoration: InputDecoration(labelText: S.current.rate),
                   keyboardType: TextInputType.number,
                 ),
               ],
@@ -132,31 +139,31 @@ class _RatesScreenState extends State<RatesScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title:  Text(S.current.ratesManagement, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        title: Text(S.current.ratesManagement,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
             Card(
-              elevation: 2, // Optional: Adjust the elevation for a shadow effect
+              elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12), // Optional: Add rounded corners
+                borderRadius: BorderRadius.circular(12),
               ),
               child: TextButton.icon(
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFDBB017), // Set the background color of the button
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Optional: Add padding for a better look
+                  backgroundColor: const Color(0xFFDBB017),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 icon: const Icon(Icons.add, color: Colors.black),
-                label:  Text(
+                label: Text(
                   S.current.addRate,
                   style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () {
-                  _showRateDialog(); // Show the rate dialog when pressed
+                  _showRateDialog();
                 },
               ),
-            )
-
+            ),
         ],
       ),
       body: Padding(
@@ -229,10 +236,10 @@ class _RatesScreenState extends State<RatesScreen> {
                         columnSpacing: 20.0,
                         horizontalMargin: 12.0,
                         columns: [
-                           DataColumn(label: Text(S.current.package, style: TextStyle(fontWeight: FontWeight.bold))),
-                           DataColumn(label: Text(S.current.rate, style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(S.current.package, style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(S.current.rate, style: TextStyle(fontWeight: FontWeight.bold))),
                           if (userAccountType == 'Admin' || userAccountType == 'Manager')
-                             DataColumn(label: Text(S.current.actions, style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text(S.current.actions, style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: filteredRatesData.map((rate) {
                           String docId = rate['roomType'];
@@ -241,9 +248,20 @@ class _RatesScreenState extends State<RatesScreen> {
                             DataCell(Text(rate['rate'] ?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold))),
                             if (userAccountType == 'Admin' || userAccountType == 'Manager')
                               DataCell(
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _editRate(docId),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      onPressed: () => _editRate(docId),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () async {
+                                        await _deleteRate(docId); // Delete the rate
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
                           ]);

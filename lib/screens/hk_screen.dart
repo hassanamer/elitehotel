@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 
 class HKScreen extends StatefulWidget {
   @override
@@ -66,7 +66,8 @@ class _HKScreenState extends State<HKScreen> {
           hkName = userDoc['name'];
           userAccountType = userDoc['accountType'];
         });
-        print("Current user id: $hkUserId"); // Ensure this prints the correct user ID
+        print(
+            "Current user id: $hkUserId"); // Ensure this prints the correct user ID
 
         // Call _checkForTodayAttendance after setting hkUserId
         await _checkForTodayAttendance();
@@ -88,7 +89,8 @@ class _HKScreenState extends State<HKScreen> {
   Future<void> _checkForTodayAttendance() async {
     final today = DateTime.now();
     final startOfDay = DateTime.utc(today.year, today.month, today.day);
-    final endOfDay = DateTime.utc(today.year, today.month, today.day, 23, 59, 59);
+    final endOfDay =
+        DateTime.utc(today.year, today.month, today.day, 23, 59, 59);
 
     print("Checking attendance for user: $hkUserId");
     print("Start of Day: $startOfDay");
@@ -101,15 +103,20 @@ class _HKScreenState extends State<HKScreen> {
         .where('checkInTime', isLessThanOrEqualTo: endOfDay)
         .get();
 
-    print("Attendance documents found: ${attendanceSnapshot.docs.length}"); // Debug print
+    print(
+        "Attendance documents found: ${attendanceSnapshot.docs.length}"); // Debug print
 
     if (attendanceSnapshot.docs.isNotEmpty) {
       final doc = attendanceSnapshot.docs.first;
       setState(() {
         _isCheckedIn = doc['checkOutTime'] == null;
         _checkInTime = (doc['checkInTime'] as Timestamp).toDate();
-        _checkOutTime = doc['checkOutTime'] != null ? (doc['checkOutTime'] as Timestamp).toDate() : null;
-        _workingHours = _checkOutTime != null ? _checkOutTime!.difference(_checkInTime!) : null;
+        _checkOutTime = doc['checkOutTime'] != null
+            ? (doc['checkOutTime'] as Timestamp).toDate()
+            : null;
+        _workingHours = _checkOutTime != null
+            ? _checkOutTime!.difference(_checkInTime!)
+            : null;
         _location = doc['checkInLocation'] ?? "Unknown";
       });
     } else {
@@ -129,13 +136,15 @@ class _HKScreenState extends State<HKScreen> {
     final attendanceSnapshot = await _firestore
         .collection('attendance')
         .where('hkUserId', isEqualTo: hkUserId)
-        .where('checkInTime', isGreaterThan: DateTime(today.year, today.month, today.day))
+        .where('checkInTime',
+            isGreaterThan: DateTime(today.year, today.month, today.day))
         .get();
 
     if (attendanceSnapshot.docs.isEmpty) {
       _checkInTime = DateTime.now();
       Position position = await _determinePosition();
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       String placeName = placemarks.first.locality ?? "Unknown";
 
       setState(() {
@@ -173,7 +182,9 @@ class _HKScreenState extends State<HKScreen> {
       width: 140,
       height: 140,
       child: ElevatedButton(
-        onPressed: _isPunchInButtonEnabled ? (_isCheckedIn ? _checkOut : _checkIn) : null, // Disable button if not enabled
+        onPressed: _isPunchInButtonEnabled
+            ? (_isCheckedIn ? _checkOut : _checkIn)
+            : null, // Disable button if not enabled
         style: ElevatedButton.styleFrom(
           backgroundColor: _isCheckedIn ? Colors.red : Colors.green,
           shape: CircleBorder(),
@@ -194,7 +205,8 @@ class _HKScreenState extends State<HKScreen> {
     if (_isCheckedIn) {
       _checkOutTime = DateTime.now();
       Position position = await _determinePosition();
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       String placeName = placemarks.first.locality ?? "Unknown";
 
       if (_checkInTime != null) {
@@ -251,8 +263,10 @@ class _HKScreenState extends State<HKScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _showMessage('Location permissions are permanently denied, we cannot request permissions.');
-      return Future.error('Location permissions are permanently denied, we cannot request permissions.');
+      _showMessage(
+          'Location permissions are permanently denied, we cannot request permissions.');
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
     }
 
     try {
@@ -264,7 +278,8 @@ class _HKScreenState extends State<HKScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget buildAttendanceInfo() {
@@ -356,7 +371,10 @@ class _HKScreenState extends State<HKScreen> {
   }
 
   Future<void> _updateRequestStatus(String requestId, String status) async {
-    await _firestore.collection('requests').doc(requestId).update({'status': status});
+    await _firestore
+        .collection('requests')
+        .doc(requestId)
+        .update({'status': status});
   }
 
   // Widget buildCheckInOutButton() {
@@ -388,7 +406,8 @@ class _HKScreenState extends State<HKScreen> {
           .where('cleaningStatus', isEqualTo: 'Dirty') // Fetch only dirty rooms
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
         if (snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
@@ -420,22 +439,26 @@ class _HKScreenState extends State<HKScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
-                        color: cleaningStatus == 'Dirty' ? Colors.red : Colors.black,
+                        color: cleaningStatus == 'Dirty'
+                            ? Colors.red
+                            : Colors.black,
                       ),
                     ),
                   ],
                 ),
                 trailing: userAccountType == 'HK Staff'
                     ? CircleAvatar(
-                  backgroundColor: cleaningStatus == 'Clean' ? Colors.green : Colors.red,
-                  child: IconButton(
-                    icon: Icon(Icons.check, color: Colors.white),
-                    onPressed: () {
-                      bool isClean = cleaningStatus == 'Dirty';
-                      _updateRoomStatus(roomId, isClean);
-                    },
-                  ),
-                )
+                        backgroundColor: cleaningStatus == 'Clean'
+                            ? Colors.green
+                            : Colors.red,
+                        child: IconButton(
+                          icon: Icon(Icons.check, color: Colors.white),
+                          onPressed: () {
+                            bool isClean = cleaningStatus == 'Dirty';
+                            _updateRoomStatus(roomId, isClean);
+                          },
+                        ),
+                      )
                     : null,
               ),
             );
@@ -495,7 +518,8 @@ class _HKScreenState extends State<HKScreen> {
                       localizedStatus = S.current.completed;
                       break;
                     default:
-                      localizedStatus = status; // Fallback to raw status if not recognized
+                      localizedStatus =
+                          status; // Fallback to raw status if not recognized
                   }
 
                   return Card(
@@ -505,28 +529,36 @@ class _HKScreenState extends State<HKScreen> {
                       subtitle: Text('${S.current.status}: $localizedStatus'),
                       trailing: userAccountType == 'HK Staff'
                           ? DropdownButton<String>(
-                        value: status,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Pending',
-                            child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'In Progress',
-                            child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Completed',
-                            child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
-                          ),
-                        ],
-                        onChanged: (String? newStatus) async {
-                          if (newStatus != null) {
-                            await _updateRequestStatus(requestId, newStatus);
-                          }
-                        },
-                      )
-                          : Text(localizedStatus,style: TextStyle(fontSize:16,fontWeight: FontWeight.bold ),), // Show localized status for non-HK staff
+                              value: status,
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'Pending',
+                                  child: Text(S.current.pending,
+                                      style: TextStyle(color: Colors.orange)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'In Progress',
+                                  child: Text(S.current.inProgress,
+                                      style: TextStyle(color: Colors.blue)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Completed',
+                                  child: Text(S.current.completed,
+                                      style: TextStyle(color: Colors.green)),
+                                ),
+                              ],
+                              onChanged: (String? newStatus) async {
+                                if (newStatus != null) {
+                                  await _updateRequestStatus(
+                                      requestId, newStatus);
+                                }
+                              },
+                            )
+                          : Text(
+                              localizedStatus,
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ), // Show localized status for non-HK staff
                     ),
                   );
                 }).toList(),
@@ -541,6 +573,13 @@ class _HKScreenState extends State<HKScreen> {
   Future<void> _updateNoteStatus(String reservationId, String newStatus) async {
     await _firestore.collection('reservations').doc(reservationId).update({
       'notes.status': newStatus,
+    });
+  }
+
+  Future<void> _updateFrontDeskRequestStatus(
+      String docId, String newStatus) async {
+    await _firestore.collection('frontdeskRequests').doc(docId).update({
+      'status': newStatus,
     });
   }
 
@@ -559,41 +598,21 @@ class _HKScreenState extends State<HKScreen> {
           itemBuilder: (context, index) {
             var note = snapshot.data![index];
             String? status = note['status'];
+            String docId = note['docId'] ?? '';
 
             // Validate status and default to 'Pending' if it's an unexpected value
-            if (status != 'Pending' && status != 'In Progress' && status != 'Completed') {
+            if (status != 'Pending' &&
+                status != 'In Progress' &&
+                status != 'Completed') {
               status = 'Pending';
             }
 
             // Map status to localized text
-            String localizedStatus;
-            switch (status) {
-              case 'Pending':
-                localizedStatus = S.current.pending;
-                break;
-              case 'In Progress':
-                localizedStatus = S.current.inProgress;
-                break;
-              case 'Completed':
-                localizedStatus = S.current.completed;
-                break;
-              default:
-                localizedStatus = status ?? ''; // Fallback to empty if null
-            }
+            String localizedStatus = _mapStatusToLocalizedText(status);
 
             // Map frequency to localized text
             String frequency = note['frequency'];
-            String localizedFrequency;
-            switch (frequency) {
-              case 'Daily':
-                localizedFrequency = S.current.daily;
-                break;
-              case 'Once':
-                localizedFrequency = S.current.justOnce;
-                break;
-              default:
-                localizedFrequency = frequency; // Fallback to raw value if not recognized
-            }
+            String localizedFrequency = _mapFrequencyToLocalizedText(frequency);
 
             return Card(
               margin: EdgeInsets.all(8),
@@ -606,32 +625,184 @@ class _HKScreenState extends State<HKScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('${S.current.frequency}: $localizedFrequency'),
+                    SizedBox(height: 4,),
                     Text('${S.current.guestNameLabel}: ${note['guestName']}'),
+                    SizedBox(height: 4,),
+
                     Text('${S.current.room}: ${note['roomNumber']}'),
+                    SizedBox(height: 4,),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('${S.current.status}: $localizedStatus'),
-                        DropdownButton<String>(
-                          value: status, // Ensure value matches one of the items
-                          items: [
-                            DropdownMenuItem(
-                              value: 'Pending',
-                              child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+                        // Check if the user is HK staff to show the dropdown
+                        if (userAccountType == 'HK Staff')
+                          DropdownButton<String>(
+                            value: status,
+                            items: _buildStatusDropdownItems(),
+                            onChanged: (String? newStatus) async {
+                              if (newStatus != null && newStatus != status) {
+                                await _updateNoteStatus(docId, newStatus);
+                                setState(() {}); // Refresh the UI after updating
+                              }
+                            },
+                          )
+                        else
+                          Text(
+                            localizedStatus,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Helper methods
+  List<DropdownMenuItem<String>> _buildStatusDropdownItems() {
+    return [
+      DropdownMenuItem(
+        value: 'Pending',
+        child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+      ),
+      DropdownMenuItem(
+        value: 'In Progress',
+        child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
+      ),
+      DropdownMenuItem(
+        value: 'Completed',
+        child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
+      ),
+    ];
+  }
+
+  String _mapStatusToLocalizedText(String? status) {
+    switch (status) {
+      case 'Pending':
+        return S.current.pending;
+      case 'In Progress':
+        return S.current.inProgress;
+      case 'Completed':
+        return S.current.completed;
+      default:
+        return status ?? ''; // Fallback to raw value if null
+    }
+  }
+
+  String _mapFrequencyToLocalizedText(String frequency) {
+    switch (frequency) {
+      case 'Daily':
+        return S.current.daily;
+      case 'Once':
+        return S.current.justOnce;
+      default:
+        return frequency; // Fallback to raw value if not recognized
+    }
+  }
+
+  Widget buildFrontDeskRequestsPage() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchFrontDeskRequests(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text(S.current.nofrontdeskrequests));
+        }
+        return ListView.builder(
+          itemCount: snapshot.data!.length,
+          itemBuilder: (context, index) {
+            var request = snapshot.data![index];
+            String status = request['status'] ?? 'Pending';
+            String docId = request['docId'] ?? ''; // Ensure docId is available
+
+            String localizedStatus;
+            switch (status) {
+              case 'Pending':
+                localizedStatus = S.current.pending;
+                break;
+              case 'In Progress':
+                localizedStatus = S.current.inProgress;
+                break;
+              case 'Completed':
+                localizedStatus = S.current.completed;
+                break;
+              default:
+                localizedStatus = status;
+            }
+
+            return Card(
+              margin: EdgeInsets.all(8),
+              child: ListTile(
+                title: Text(
+                  '${request['requestDetail']}',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('${S.current.status}: $localizedStatus'),
+                        if (userAccountType == 'HK Staff') // Only show dropdown for HK Staff
+                          DropdownButton<String>(
+                            value: status,
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Pending',
+                                child: Text(S.current.pending,
+                                    style: TextStyle(color: Colors.orange)),
+                              ),
+                              DropdownMenuItem(
+                                value: 'In Progress',
+                                child: Text(S.current.inProgress,
+                                    style: TextStyle(color: Colors.blue)),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Completed',
+                                child: Text(S.current.completed,
+                                    style: TextStyle(color: Colors.green)),
+                              ),
+                            ],
+                            onChanged: (String? newStatus) async {
+                              if (newStatus != null &&
+                                  newStatus != status &&
+                                  docId.isNotEmpty) {
+                                await _firestore
+                                    .collection('frontdeskRequest')
+                                    .doc(docId)
+                                    .update({'status': newStatus});
+                                setState(() {}); // Refresh the UI
+                              }
+                            },
+                          )
+                        else
+                          Text(
+                            localizedStatus,
+                            style: TextStyle(
+                              color: _getStatusColor(status),
                             ),
-                            DropdownMenuItem(
-                              value: 'In Progress',
-                              child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Completed',
-                              child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
-                            ),
-                          ],
-                          onChanged: (String? newStatus) async {
-                            if (newStatus != null && newStatus != status) {
-                              await _updateNoteStatus(note['reservationId'], newStatus);
-                              setState(() {}); // Refresh the UI only after updating
+                          ),
+                        // Delete button
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            if (docId.isNotEmpty) {
+                              await _firestore
+                                  .collection('frontdeskRequest')
+                                  .doc(docId)
+                                  .delete();
+                              setState(() {
+                                snapshot.data!.removeAt(index); // Remove from the local list
+                              });
                             }
                           },
                         ),
@@ -647,22 +818,44 @@ class _HKScreenState extends State<HKScreen> {
     );
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Pending':
+        return Colors.orange;
+      case 'In Progress':
+        return Colors.blue;
+      case 'Completed':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchFrontDeskRequests() async {
+    final querySnapshot = await _firestore.collection('frontdeskRequest').get();
+    return querySnapshot.docs.map((doc) {
+      return {
+        'docId': doc.id, // Include Firestore document ID
+        ...doc.data(),
+      };
+    }).toList();
+  }
 
   Future<List<Map<String, dynamic>>> _fetchAssignedNotes() async {
     final notesSnapshot = await _firestore
-        .collection('reservations')
-        .where('notes.assignedToHK', isEqualTo: true)
+        .collection('notes')
+        .where('assignedToHK', isEqualTo: true)
         .get();
 
     return notesSnapshot.docs.map((doc) {
-      final data = doc.data();
+      final data = doc.data() as Map<String, dynamic>? ?? {}; // Handle null data safely
       return {
         'reservationId': doc.id,
         'frequency': data['frequency'] ?? 'Once',
-        'text': data['notes']['text'] ?? '',
-        'status': data['notes']['status'],
-        'guestName': data['guestName'],
-        'roomNumber': data['roomNumber'],
+        'text': data['text'] ?? '',
+        'status': data['status'] ?? 'Pending',
+        'guestName': data['guestName'] ?? 'Unknown Guest',
+        'roomNumber': data['room'] ?? 'Unknown Room',
       };
     }).toList();
   }
@@ -680,7 +873,9 @@ class _HKScreenState extends State<HKScreen> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
-          if (userAccountType == 'Admin' || userAccountType == 'Manager' || userAccountType == 'HK Staff')
+          if (userAccountType == 'Admin' ||
+              userAccountType == 'Manager' ||
+              userAccountType == 'HK Staff')
             IconButton(
               icon: const Icon(Icons.notifications),
               onPressed: () {
@@ -707,6 +902,7 @@ class _HKScreenState extends State<HKScreen> {
           buildRoomsPage(),
           buildRequestsPage(),
           buildAssignedNotesPage(),
+          buildFrontDeskRequestsPage()
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -731,6 +927,10 @@ class _HKScreenState extends State<HKScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.event_note_sharp, color: Color(0xFFDBB017)),
             label: S.current.assignedNotes,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task_outlined, color: Color(0xFFDBB017)),
+            label: S.current.requests,
           ),
         ],
         currentIndex: _selectedIndex,
