@@ -294,7 +294,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
             totalCost: _totalCost,
             creationDate: creationDate,
             // guestAddress: _guestAddressController.text,
-            // mobileNumber: _mobileNumberController.text,
+            guestNumber: _mobileNumberController.text,
             // nationalId: _nationalIdController.text,
             // job: _jobController.text,
             // nationality: _nationalityController.text,
@@ -737,6 +737,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => InvoiceScreen(
+                                              guestNumber: reservation['mobileNumber'],
+
                                               paymentMethod:
                                                   reservation['paymentMethod'],
                                               reservationId:
@@ -1122,7 +1124,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     InvoiceScreen(
-                                                  paymentMethod: reservation[
+                                                      guestNumber: reservation['mobileNumber'],
+
+                                                      paymentMethod: reservation[
                                                       'paymentMethod'],
                                                   reservationId: reservation[
                                                       'reservationId'],

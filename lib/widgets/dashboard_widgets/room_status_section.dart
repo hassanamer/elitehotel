@@ -34,8 +34,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
         bool isOccupied = roomData['status'] == 'Occupied';
         String cleaningStatus = roomData['cleaningStatus'];
 
-        print(
-            "Room ID: ${roomDoc.id}, Status: ${roomData['status']}, Cleaning Status: $cleaningStatus");
+
 
         if (isOccupied) {
           if (cleaningStatus == 'Clean') {
@@ -45,7 +44,6 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
           }
         } else {
           bool isReserved = await _checkIfRoomIsReserved(roomDoc.id);
-          print("Room ${roomDoc.id} is reserved: $isReserved");
 
           if (!isReserved) {
             if (cleaningStatus == 'Clean') {
@@ -64,7 +62,6 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
         availableDirtyRooms = tempAvailableDirty;
       });
     } catch (e) {
-      print("Error fetching room data: $e");
     }
   }
 
@@ -76,10 +73,8 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
           .where('checkOutDate', isGreaterThanOrEqualTo: DateTime.now())
           .get();
 
-      print("Reservations for room $roomId: ${reservations.docs.length}");
       return reservations.docs.isNotEmpty;
     } catch (e) {
-      print("Error checking reservation for room $roomId: $e");
       return false;
     }
   }

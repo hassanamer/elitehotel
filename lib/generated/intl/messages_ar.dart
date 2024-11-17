@@ -145,6 +145,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "frequency": MessageLookupByLibrary.simpleMessage("التكرار"),
         "fridge": MessageLookupByLibrary.simpleMessage("ثلاجة"),
         "frontDesk": MessageLookupByLibrary.simpleMessage("مكتب الاستقبال"),
+        "frontDeskRequests":
+            MessageLookupByLibrary.simpleMessage("طلبات الريسبشن"),
         "guestAddress": MessageLookupByLibrary.simpleMessage("عنوان النزيل"),
         "guestManagement": MessageLookupByLibrary.simpleMessage("إدارة الضيوف"),
         "guestName": MessageLookupByLibrary.simpleMessage("اسم الضيف"),

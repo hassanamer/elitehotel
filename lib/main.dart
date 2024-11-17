@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -28,9 +29,14 @@ import 'generated/l10n.dart';
 final GlobalKey<_MyAppState> myAppKey = GlobalKey<_MyAppState>();
 
 void main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
   await initializeFirebase();
-  runApp(MyApp(key: myAppKey));}
+  runApp(MyApp(key: myAppKey));
+  
+}
+
+
 
 Future<void> initializeFirebase() async {
   try {

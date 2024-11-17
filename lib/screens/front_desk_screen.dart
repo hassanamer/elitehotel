@@ -21,12 +21,14 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
   String selectedFloor = 'All Floors';
   String selectedRoomType = 'All Types';
   DateTimeRange? selectedRange;
+  DateTime selectedReminderDate = DateTime.now(); // Track the selected date for reminders
+
 
   @override
   void initState() {
     super.initState();
     _fetchAllRooms();
-    _fetchDailyReminders();
+    _fetchDailyReminders(DateTime.now());
   }
 
   Future<void> _addRequest(String requestDetail) async {
@@ -88,74 +90,97 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     'completed': S.current.completed,
   };
 
-// Add this method to fetch daily reminders
-  Future<void> _fetchDailyReminders() async {
+  Future<void> _fetchDailyReminders(DateTime date) async {
     try {
-      // Fetch all notes that should be shown today based on the check-in and check-out date
+      // Normalize the selected day to midnight
+      DateTime selectedDay = DateTime(date.year, date.month, date.day);
+      print("Fetching reminders for date: $selectedDay");
+
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('notes')
-          .where('checkInDate', isLessThanOrEqualTo: DateTime.now().toUtc())
-          .where('checkOutDate', isGreaterThanOrEqualTo: DateTime.now().toUtc())
+          .where('checkInDate', isLessThanOrEqualTo: selectedDay)
+          .where('checkOutDate', isGreaterThanOrEqualTo: selectedDay)
           .get();
 
-      print(
-          "Number of documents fetched: ${snapshot.docs.length}"); // Debugging line
+      print("Number of documents fetched: ${snapshot.docs.length}");
 
       setState(() {
         dailyReminders = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>? ?? {};
+          print("Document data: $data");
 
-          // Ensure checkInDate and checkOutDate are properly converted to DateTime
+          // Parse Firestore timestamps
           DateTime checkInDate =
               (data['checkInDate'] as Timestamp?)?.toDate() ?? DateTime.now();
           DateTime checkOutDate =
               (data['checkOutDate'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-          // Normalize dates to ignore time
+          // Normalize dates to midnight for comparison
           checkInDate =
               DateTime(checkInDate.year, checkInDate.month, checkInDate.day);
           checkOutDate =
               DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
 
           return {
-            'reservationId': doc.id,
-            'room': data['room'] ?? 'Unknown Room',
+            'reservationId': data['reservationId']?.toString() ?? 'Unknown',
+            'room': data['room']?.toString() ?? 'Unknown Room',
             'guestRequest': data['text'] ?? 'No requests',
-            'frequency': data['frequency']?.toLowerCase() ?? 'just once',
-            // Ensure frequency is in lowercase
+            'frequency': data['frequency'] ?? 'justOnce',
             'checkInDate': checkInDate,
             'checkOutDate': checkOutDate,
             'status': data['status'] ?? 'Pending',
             'assignedToHK': data['assignedToHK'] ?? false,
           };
         }).where((reminder) {
-          DateTime today = DateTime.now();
-          today = DateTime(
-              today.year, today.month, today.day); // Normalize today's date
+          // Retrieve values
+          DateTime checkIn = reminder['checkInDate'];
+          DateTime checkOut = reminder['checkOutDate'];
+          String frequency = reminder['frequency'];
 
-          // Debugging: Log each reminder's details
-          print(
-              "Checking reminder: ${reminder['reservationId']}, CheckIn: ${reminder['checkInDate']}, CheckOut: ${reminder['checkOutDate']}, Frequency: ${reminder['frequency']}");
+          // Evaluate conditions
+          bool isWithinDateRange =
+              !checkIn.isAfter(selectedDay) && !checkOut.isBefore(selectedDay);
+          bool isDailyReminder = frequency == 'Daily';
 
-          // Check if the reminder's frequency is "Daily" or if it is "Just Once" and matches today's date
-          bool isSameDayAsToday =
-              reminder['checkInDate'].isAtSameMomentAs(today);
-          bool isDailyReminder =
-              reminder['frequency'] == 'daily'; // Ensure to check for lowercase
-          bool isJustOnceReminder = reminder['frequency'] == 'justonce' &&
-              isSameDayAsToday; // Check for 'justonce' without space
+          // Update condition for justOnce
+          bool isJustOnceReminder = frequency == 'justOnce' &&
+              (selectedDay.isAfter(checkIn.subtract(Duration(days: 1))) &&
+                  selectedDay.isBefore(checkOut.add(Duration(days: 1))));
 
-          // Return true if the reminder should be shown today
-          return isDailyReminder || isJustOnceReminder;
+          // Debug output
+          print("Reminder: $reminder");
+          print("Selected day: $selectedDay");
+          print("Check-in: $checkIn, Check-out: $checkOut");
+          print("Within range: $isWithinDateRange");
+          print("Daily: $isDailyReminder, Just once: $isJustOnceReminder");
+
+          // Final filtering condition
+          return isWithinDateRange && (isDailyReminder || isJustOnceReminder);
         }).toList();
 
-        // Debugging: Log the final list of daily reminders
-        print("Daily reminders fetched: $dailyReminders");
+        print("Filtered reminders: $dailyReminders");
       });
     } catch (e) {
       print("Error fetching daily reminders: $e");
     }
   }
+
+
+  void _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedReminderDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null && picked != selectedReminderDate) {
+      setState(() {
+        selectedReminderDate = picked;
+      });
+      _fetchDailyReminders(picked);
+    }
+  }
+
 
 // ... existing code ...
   void _updateRoomStatuses() async {
@@ -191,14 +216,14 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
         .update({
       'assignedToHK': true,
     });
-    _fetchDailyReminders(); // Refresh the reminders after assignment
+    _fetchDailyReminders(selectedReminderDate); // Refresh the reminders after assignment
   }
 
   void _updateRequestStatus(String reservationId, String newStatus) async {
     await _firestore.collection('reservations').doc(reservationId).update({
       'notes.status': newStatus,
     });
-    _fetchDailyReminders();
+    _fetchDailyReminders(selectedReminderDate);
   }
 
   Widget _buildDailyReminders() {
@@ -207,120 +232,128 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            S.current.dailyGuestRequests,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                S.current.dailyGuestRequests,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.calendar_today),
+                onPressed: () => _selectDate(context),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           dailyReminders.isNotEmpty
               ? ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: dailyReminders.length,
-                  itemBuilder: (context, index) {
-                    final reminder = dailyReminders[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      elevation: 4,
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                            vertical: 10.0, horizontal: 16.0),
-                        leading: Icon(
-                          Icons.room_service_outlined,
-                          color: const Color(0xFFDBB017),
-                          size: 30,
-                        ),
-                        title: Text(
-                          '${S.current.room} ${reminder['room']}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${reminder['guestRequest']}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Replace IconButton with TextButton
-                            TextButton(
-                              style: TextButton.styleFrom(
-                                backgroundColor: reminder['assignedToHK']
-                                    ? Colors.green
-                                    : const Color(0xFFDBB017),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (!reminder['assignedToHK']) {
-                                  _assignToHK(reminder['reservationId']);
-                                }
-                              },
-                              child: Text(
-                                reminder['assignedToHK']
-                                    ? S.current.assigned
-                                    : S.current.assignedToHk,
-                                style: TextStyle(
-                                    fontSize: 18, color: Colors.white),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 20,
-                            ),
-                            DropdownButton<String>(
-                              value: statusOptions.keys
-                                      .contains(reminder['status'])
-                                  ? reminder['status']
-                                  : 'pending', // Fallback to 'pending' if unmatched
-                              items: statusOptions.keys.map((key) {
-                                return DropdownMenuItem<String>(
-                                  value: key,
-                                  child: Text(statusOptions[key]!),
-                                );
-                              }).toList(),
-                              onChanged: (newStatus) {
-                                if (newStatus != null) {
-                                  _updateRequestStatus(
-                                      reminder['reservationId'], newStatus);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                )
-              : Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      S.current.noRequestsForToday,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: dailyReminders.length,
+            itemBuilder: (context, index) {
+              final reminder = dailyReminders[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 4,
+                child: ListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: 10.0, horizontal: 16.0),
+                  leading: Icon(
+                    Icons.room_service_outlined,
+                    color: const Color(0xFFDBB017),
+                    size: 30,
+                  ),
+                  title: Text(
+                    '${S.current.room} ${reminder['room']}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                   ),
+                  subtitle: Text(
+                    '${reminder['guestRequest']}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: reminder['assignedToHK']
+                              ? Colors.green
+                              : const Color(0xFFDBB017),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          if (!reminder['assignedToHK']) {
+                            _assignToHK(reminder['reservationId']);
+                          }
+                        },
+                        child: Text(
+                          reminder['assignedToHK']
+                              ? S.current.assigned
+                              : S.current.assignedToHk,
+                          style: TextStyle(
+                              fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 20,
+                      ),
+                      DropdownButton<String>(
+                        value: statusOptions.keys
+                            .contains(reminder['status'])
+                            ? reminder['status']
+                            : 'pending',
+                        items: statusOptions.keys.map((key) {
+                          return DropdownMenuItem<String>(
+                            value: key,
+                            child: Text(statusOptions[key]!),
+                          );
+                        }).toList(),
+                        onChanged: (newStatus) {
+                          if (newStatus != null) {
+                            _updateRequestStatus(
+                                reminder['reservationId'], newStatus);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+              );
+            },
+          )
+              : Center(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                S.current.noRequestsForToday,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

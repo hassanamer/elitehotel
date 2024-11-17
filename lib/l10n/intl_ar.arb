@@ -253,5 +253,6 @@
   "nationalId": "الرقم القومي",
   "mobileNumber": "رقم الهاتف",
   "guestAddress": "عنوان النزيل",
-  "availableroom": "الغرف المتاحة"
+  "availableroom": "الغرف المتاحة",
+  "frontDeskRequests": "طلبات الريسبشن"
 }

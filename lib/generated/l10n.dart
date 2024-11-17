@@ -2450,6 +2450,16 @@ class S {
     );
   }
 
+  /// `FrontDesk Requests`
+  String get frontDeskRequests {
+    return Intl.message(
+      'FrontDesk Requests',
+      name: 'frontDeskRequests',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Suite`
   String get suite {
     return Intl.message(

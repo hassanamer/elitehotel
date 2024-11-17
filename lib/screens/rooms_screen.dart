@@ -151,10 +151,10 @@ class _RoomsScreenState extends State<RoomsScreen> {
             items: [
               'All',
               S.current.available,
-    S.current.occupied,
-    S.current.statusMaintenance,
-    S.current.dirty,
-    S.current.clean
+              S.current.occupied,
+              S.current.statusMaintenance,
+              S.current.dirty,
+              S.current.clean
             ]
                 .map((status) =>
                     DropdownMenuItem(value: status, child: Text(status)))
@@ -277,16 +277,16 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
   // Table column headers
   List<DataColumn> _buildTableColumns() {
-    return  [
+    return [
       DataColumn(
           label: Text(S.current.roomNumber,
               style: TextStyle(fontWeight: FontWeight.bold))),
       DataColumn(
-          label:
-              Text(S.current.bedType, style: TextStyle(fontWeight: FontWeight.bold))),
+          label: Text(S.current.bedType,
+              style: TextStyle(fontWeight: FontWeight.bold))),
       DataColumn(
-          label:
-              Text(S.current.roomType, style: TextStyle(fontWeight: FontWeight.bold))),
+          label: Text(S.current.roomType,
+              style: TextStyle(fontWeight: FontWeight.bold))),
       DataColumn(
           label: Text(S.current.roomFloor,
               style: TextStyle(fontWeight: FontWeight.bold))),
@@ -294,7 +294,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
           label: Text(S.current.facilities,
               style: TextStyle(fontWeight: FontWeight.bold))),
       DataColumn(
-          label: Text(S.current.status, style: TextStyle(fontWeight: FontWeight.bold))),
+          label: Text(S.current.status,
+              style: TextStyle(fontWeight: FontWeight.bold))),
       DataColumn(
           label: Text(S.current.cleaningStatus,
               style: TextStyle(fontWeight: FontWeight.bold))),
@@ -334,6 +335,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
     // Mark each room based on active reservations
     for (var room in rooms) {
       bool isOccupied = false;
+      DateTime? lastCheckOutAt1PM; // Declare a variable to store the last checkout time
+
 
       for (var reservation in reservations) {
         DateTime checkInDate =
@@ -359,11 +362,17 @@ class _RoomsScreenState extends State<RoomsScreen> {
           isOccupied = true;
           break;
         }
+        // Update the last checkout time
+        lastCheckOutAt1PM = checkOutAt1PM;
       }
 
       // Set room to 'Available' if no active reservation for today
       if (!isOccupied) {
         room['status'] = 'Available';
+
+        if (lastCheckOutAt1PM != null && now.isAfter(lastCheckOutAt1PM)) {
+          room['cleaningStatus'] = 'Needs Cleaning';
+        }
       }
     }
 

@@ -145,6 +145,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "frequency": MessageLookupByLibrary.simpleMessage("Frequency"),
         "fridge": MessageLookupByLibrary.simpleMessage("Fridge"),
         "frontDesk": MessageLookupByLibrary.simpleMessage("Front Desk"),
+        "frontDeskRequests":
+            MessageLookupByLibrary.simpleMessage("FrontDesk Requests"),
         "guestAddress": MessageLookupByLibrary.simpleMessage("Guest Address"),
         "guestManagement":
             MessageLookupByLibrary.simpleMessage("Guest Management"),

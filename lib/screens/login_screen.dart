@@ -178,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen>
             child: RotationTransition(
               turns: _animationController,
               child: Image.asset(
-                'assets/elite.png',
+                'assets/elite.jpg',
                 color: Colors.white.withOpacity(0.2),
                 width: 300,
                 height: 200,
