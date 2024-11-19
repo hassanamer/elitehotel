@@ -369,9 +369,11 @@ class _RoomsScreenState extends State<RoomsScreen> {
       // Set room to 'Available' if no active reservation for today
       if (!isOccupied) {
         room['status'] = 'Available';
+        room['currentGuest'] = 'None'; // Clear the current guest name
+
 
         if (lastCheckOutAt1PM != null && now.isAfter(lastCheckOutAt1PM)) {
-          room['cleaningStatus'] = 'Needs Cleaning';
+          room['cleaningStatus'] = 'Dirty';
         }
       }
     }

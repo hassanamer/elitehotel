@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ):
            Positioned(
-             top: 170,
+             top: 580,
              left: 20,
              child: AnimatedOpacity(
                opacity: _animationController.value,
@@ -177,12 +177,14 @@ class _LoginScreenState extends State<LoginScreen>
             left: (MediaQuery.of(context).size.width - 300) / 2,
             child: RotationTransition(
               turns: _animationController,
-              child: Image.asset(
-                'assets/elite.jpg',
-                color: Colors.white.withOpacity(0.2),
-                width: 300,
-                height: 200,
-                fit: BoxFit.contain,
+              child: Opacity(
+                opacity: 0.2,
+                child: Image.asset(
+                  'assets/elitee.png',
+                  width: 300,
+                  height: 200,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
@@ -317,9 +319,10 @@ class _LoginScreenState extends State<LoginScreen>
               setState(() => _isPasswordVisible = !_isPasswordVisible),
         )
             : null,
+
       ),
       obscureText: isPassword && !_isPasswordVisible,
-      style: const TextStyle(color: Color(0xFFDBB017)),
+      style: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       onChanged: onChanged,
       validator: (value) => value!.isEmpty ? 'Please enter $label' : null,
     );
@@ -329,9 +332,9 @@ class _LoginScreenState extends State<LoginScreen>
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white),
+      labelStyle: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.1),
+      fillColor: Colors.white.withOpacity(0.9),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,

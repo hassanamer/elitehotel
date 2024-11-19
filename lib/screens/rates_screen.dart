@@ -84,7 +84,6 @@ class _RatesScreenState extends State<RatesScreen> {
                 TextField(
                   controller: packageController,
                   decoration: InputDecoration(labelText: S.current.package),
-                  readOnly: docId != null,
                 ),
                 TextField(
                   controller: rateController,

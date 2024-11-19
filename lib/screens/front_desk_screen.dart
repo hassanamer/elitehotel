@@ -207,7 +207,6 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     });
   }
 
-// ... existing code ...
 // Add this method to assign the note to housekeeping
   void _assignToHK(String reservationId) async {
     await FirebaseFirestore.instance
@@ -227,6 +226,141 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
   }
 
   Widget _buildDailyReminders() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                S.current.dailyGuestRequests,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.calendar_today),
+                onPressed: () => _selectDate(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          dailyReminders.isNotEmpty
+              ? ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: dailyReminders.length,
+            itemBuilder: (context, index) {
+              final reminder = dailyReminders[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.room_service_outlined,
+                            color: const Color(0xFFDBB017),
+                            size: 30,
+                          ),
+                          SizedBox(width: 8), // Add some space between the icon and text
+                          Text(
+                            '${S.current.room} ${reminder['room']}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8), // Add some space between the rows
+                      Text(
+                        '${reminder['guestRequest']}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 8), // Add some space between the subtitle and buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: reminder['assignedToHK']
+                                  ? Colors.green
+                                  : const Color(0xFFDBB017),
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (!reminder['assignedToHK']) {
+                                _assignToHK(reminder['reservationId']);
+                              }
+                            },
+                            child: Text(
+                              reminder['assignedToHK']
+                                  ? S.current.assigned
+                                  : S.current.assignedToHk,
+                              style: TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                          DropdownButton<String>(
+                            value: statusOptions.keys.contains(reminder['status'])
+                                ? reminder['status']
+                                : 'pending',
+                            items: statusOptions.keys.map((key) {
+                              return DropdownMenuItem<String>(
+                                value: key,
+                                child: Text(statusOptions[key]!),
+                              );
+                            }).toList(),
+                            onChanged: (newStatus) {
+                              if (newStatus != null) {
+                                _updateRequestStatus(reminder['reservationId'], newStatus);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          )
+              : Center(
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                S.current.noRequestsForToday,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildDailyRemindersForMob() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -365,6 +499,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
 
 
 
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -384,7 +519,17 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
         body: TabBarView(
           children: [
             _buildCalendarAndRoomStatus(),
-            _buildDailyReminders(),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 300) {
+                  // For web, desktop, and large screens
+                  return _buildDailyReminders();
+                } else {
+                  // For mobile and smaller screens
+                  return _buildDailyRemindersForMob();
+                }
+              },
+            ),
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -445,6 +590,9 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                 rangeStartDay: selectedRange?.start,
                 rangeEndDay: selectedRange?.end,
                 rangeSelectionMode: RangeSelectionMode.toggledOn,
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false, // Hide the format button
+                ),
               ),
             ],
           ),

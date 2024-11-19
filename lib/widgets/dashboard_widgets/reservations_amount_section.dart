@@ -11,6 +11,8 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   double todayAmount = 0.0;
   double monthlyAmount = 0.0;
+  Map<String, double> todayPaymentMethods = {};
+  Map<String, double> monthlyPaymentMethods = {};
 
   @override
   void initState() {
@@ -35,22 +37,28 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
 
     double todayTotal = 0.0;
     double monthlyTotal = 0.0;
+    Map<String, double> todayPayments = {};
+    Map<String, double> monthlyPayments = {};
 
     for (var doc in todaySnapshot.docs) {
-      if (doc['totalCost'] != null) {
-        todayTotal += (doc['totalCost'] ?? 0.0);
-      }
+      double cost = doc['totalCost'] ?? 0.0;
+      todayTotal += cost;
+      String paymentMethod = doc['paymentMethod'] ?? 'Unknown';
+      todayPayments[paymentMethod] = (todayPayments[paymentMethod] ?? 0.0) + cost;
     }
 
     for (var doc in monthlySnapshot.docs) {
-      if (doc['totalCost'] != null) {
-        monthlyTotal += (doc['totalCost'] ?? 0.0);
-      }
+      double cost = doc['totalCost'] ?? 0.0;
+      monthlyTotal += cost;
+      String paymentMethod = doc['paymentMethod'] ?? 'Unknown';
+      monthlyPayments[paymentMethod] = (monthlyPayments[paymentMethod] ?? 0.0) + cost;
     }
 
     setState(() {
       todayAmount = todayTotal;
       monthlyAmount = monthlyTotal;
+      todayPaymentMethods = todayPayments;
+      monthlyPaymentMethods = monthlyPayments;
     });
   }
 
@@ -63,7 +71,7 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             Text(
+            Text(
               S.current.reservationsamount,
               style: TextStyle(
                 fontSize: 20,
@@ -72,11 +80,22 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
               ),
             ),
             const SizedBox(height: 16),
-            // Today's Reservations Card
             _buildAmountCard(S.current.todayreservations, todayAmount),
             const SizedBox(height: 8),
-            // This Month's Reservations Card
             _buildAmountCard(S.current.monthreservations, monthlyAmount),
+            const SizedBox(height: 16),
+            Text(
+              S.current.paymenMethod,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...todayPaymentMethods.entries.map((entry) => _buildAmountCard('Today ${entry.key}', entry.value)).toList(),
+            const SizedBox(height: 8),
+            ...monthlyPaymentMethods.entries.map((entry) => _buildAmountCard('Month ${entry.key}', entry.value)).toList(),
           ],
         ),
       ),
@@ -98,7 +117,7 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
               child: Text(
                 title,
                 style: const TextStyle(
-                  overflow: TextOverflow.ellipsis ,
+                  overflow: TextOverflow.ellipsis,
                   fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w500,

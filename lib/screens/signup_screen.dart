@@ -218,7 +218,7 @@ class _SignupScreenState extends State<SignupScreen>
             child: RotationTransition(
               turns: _animationController,
               child: Image.asset(
-                'assets/elite.jpg',
+                'assets/elitee.png',
                 color: Colors.white.withOpacity(0.2),
                 width: 300,
                 height: 200,
@@ -308,7 +308,7 @@ class _SignupScreenState extends State<SignupScreen>
                                 const SizedBox(width: 8),
                                 Text(type,
                                     style:
-                                    const TextStyle(color: Colors.white)),
+                                    const TextStyle(color: Color(0xFFDBB017))),
                               ],
                             ),
                           );
@@ -393,7 +393,7 @@ class _SignupScreenState extends State<SignupScreen>
             : null,
       ),
       obscureText: isPassword && !_isPasswordVisible,
-      style: const TextStyle(color: Color(0xFFDBB017)),
+      style: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       onChanged: onChanged,
       validator: (value) => value!.isEmpty ? 'Please enter $label' : null,
     );
@@ -402,9 +402,9 @@ class _SignupScreenState extends State<SignupScreen>
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white),
+      labelStyle: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.1),
+      fillColor: Colors.white.withOpacity(0.9),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,

@@ -8,6 +8,7 @@ import 'package:elitehotel/screens/accounts_screen.dart';
 import 'package:elitehotel/screens/dashboard_screen.dart';
 import 'package:elitehotel/screens/front_desk_screen.dart';
 import 'package:elitehotel/screens/guest_screen.dart';
+import 'package:elitehotel/screens/hk_attendance_history.dart';
 import 'package:elitehotel/screens/hk_screen.dart';
 import 'package:elitehotel/screens/login_screen.dart';
 import 'package:elitehotel/screens/rates_screen.dart';
@@ -54,25 +55,25 @@ Future<void> initializeFirebase() async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // Create an initial notification to start the service in the foreground
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-  AndroidNotificationDetails(
-      'foreground_channel_id', 'Foreground Service',
-      channelDescription: 'This notification keeps the background service running.',
-      importance: Importance.low,
-      priority: Priority.low,
-      showWhen: false);
-  const NotificationDetails platformChannelSpecifics =
-  NotificationDetails(android: androidPlatformChannelSpecifics);
-
-  // Display the notification immediately to start the service in foreground
-  await flutterLocalNotificationsPlugin.show(
-      0,
-      'Elite Hotel Service',
-      'Background service running...',
-      platformChannelSpecifics);
+  // // // Create an initial notification to start the service in the foreground
+  // // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  // // FlutterLocalNotificationsPlugin();
+  // // const AndroidNotificationDetails androidPlatformChannelSpecifics =
+  // // AndroidNotificationDetails(
+  // //     'foreground_channel_id', 'Foreground Service',
+  // //     channelDescription: 'This notification keeps the background service running.',
+  // //     importance: Importance.low,
+  // //     priority: Priority.low,
+  // //     showWhen: false);
+  // // const NotificationDetails platformChannelSpecifics =
+  // // NotificationDetails(android: androidPlatformChannelSpecifics);
+  //
+  // // Display the notification immediately to start the service in foreground
+  // await flutterLocalNotificationsPlugin.show(
+  //     0,
+  //     'Elite Hotel Service',
+  //     'Background service running...',
+  //     platformChannelSpecifics);
 
   // Initialize Firebase
   await Firebase.initializeApp();
@@ -261,6 +262,7 @@ class _MainScreenState extends State<MainScreen> {
           ReservationScreen(),
           SettingsScreen(),
           AccountsScreen(),
+          HKAttendanceHistoryPage(), // Add the new page
         ];
       case 'Front Desk':
         return [
@@ -283,7 +285,7 @@ class _MainScreenState extends State<MainScreen> {
     switch (role) {
       case 'Admin':
       case 'Manager':
-        return List.generate(9, (index) => index);
+        return List.generate(10, (index) => index);
       case 'Front Desk':
         return List.generate(7, (index) => index + 1);
       case 'HK Staff':

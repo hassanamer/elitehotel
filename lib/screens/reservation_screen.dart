@@ -845,6 +845,69 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
+                    TextField(
+                      controller: _guestAddressController,
+                      decoration: InputDecoration(
+                        labelText: S.current.guestAddress,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _mobileNumberController,
+                      decoration: InputDecoration(
+                        labelText: S.current.mobileNumber,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalIdController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationalId,
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLength: 14,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _jobController,
+                      decoration: InputDecoration(
+                        labelText: S.current.job,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalityController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationality,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPackage,
+                      items: _packages.map((package) {
+                        return DropdownMenuItem(
+                          value: package,
+                          child: Text(package),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.selectPackage,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPackage = value;
+                        });
+                        _fetchRate(); // Fetch rate based on selected package
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: _selectedRoomType,
                       items: _roomTypes.map((type) {
@@ -866,6 +929,25 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         });
                         _fetchRate();
                         _fetchAvailableRooms(); // Fetch available rooms for the selected type
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: S.current.availableroom,
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _assignedRoomNumber,
+                      items: _availableRooms.map((roomNumber) {
+                        return DropdownMenuItem(
+                          value: roomNumber,
+                          child: Center(child: Text(roomNumber)),
+                        );
+                      }).toList(),
+                      onChanged: (roomNumber) {
+                        setState(() {
+                          _assignedRoomNumber = roomNumber;
+                        });
                       },
                     ),
                     const SizedBox(height: 12),
@@ -933,6 +1015,27 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       ),
                       keyboardType: TextInputType.number,
                       onChanged: (value) => _calculateTotalCost(),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPaymentMethod,
+                      items: _paymentMethods.map((method) {
+                        return DropdownMenuItem(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.paymenMethod,
+                        // Add localization if needed
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPaymentMethod =
+                              value; // Update selected payment method
+                        });
+                      },
                     ),
                     const SizedBox(height: 12),
                     TextField(

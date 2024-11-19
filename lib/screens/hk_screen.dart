@@ -81,7 +81,8 @@ class _HKScreenState extends State<HKScreen> {
       body: PageView(
         controller: _pageController,
         children: [
-          if (userAccountType == 'HK Staff') AttendancePage(hkUserId: hkUserId),
+          if (userAccountType == 'HK Staff')
+            AttendancePage(hkUserId: hkUserId),
           RoomsPage(),
           RequestsPage(),
           AssignedNotesPage(),
@@ -422,6 +423,9 @@ class _AttendancePageState extends State<AttendancePage> {
 
 class RoomsPage extends StatelessWidget {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String? userAccountType; // Add this line to pass the userAccountType
+
+  RoomsPage({this.userAccountType}); // Modify the constructor to accept userAccountType
 
   @override
   Widget build(BuildContext context) {
@@ -471,7 +475,8 @@ class RoomsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                trailing: CircleAvatar(
+                trailing: userAccountType == 'HK Staff'
+                    ? CircleAvatar(
                   backgroundColor:
                   cleaningStatus == 'Clean' ? Colors.green : Colors.red,
                   child: IconButton(
@@ -481,7 +486,7 @@ class RoomsPage extends StatelessWidget {
                       _updateRoomStatus(roomId, isClean);
                     },
                   ),
-                ),
+                ) : null,
               ),
             );
           }).toList(),
@@ -506,6 +511,7 @@ class _RequestsPageState extends State<RequestsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   DateTime _selectedDate = DateTime.now();
   TextEditingController requestController = TextEditingController();
+  String? userAccountType;
 
   Future<void> _pickDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -546,33 +552,43 @@ class _RequestsPageState extends State<RequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return  Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: _pickDate,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: requestController,
-            decoration: InputDecoration(
-              labelText: S.current.addRequest,
-              border: OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(Icons.send),
-                onPressed: () {
-                  if (requestController.text.isNotEmpty) {
-                    _addRequest(requestController.text);
-                    requestController.clear();
-                  }
-                },
-              ),
+        if (userAccountType == 'HK Staff') // Display only for HK Staff
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: requestController,
+                    decoration: InputDecoration(
+                      labelText: S.current.addRequest,
+                      border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.send),
+                        onPressed: () {
+                          if (requestController.text.isNotEmpty) {
+                            _addRequest(requestController.text);
+                            requestController.clear();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (userAccountType != 'HK Staff') Spacer(),
+            IconButton(
+              icon: Icon(Icons.calendar_today,color: Colors.white,),
+              onPressed: _pickDate,
+            ),
+          ],
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -610,30 +626,43 @@ class _RequestsPageState extends State<RequestsPage> {
                     child: ListTile(
                       title: Text(description),
                       subtitle: Text('${S.current.status}: $localizedStatus'),
-                      trailing: DropdownButton<String>(
-                        value: status,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'Pending',
-                            child: Text(S.current.pending,
-                                style: TextStyle(color: Colors.orange)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'In Progress',
-                            child: Text(S.current.inProgress,
-                                style: TextStyle(color: Colors.blue)),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Completed',
-                            child: Text(S.current.completed,
-                                style: TextStyle(color: Colors.green)),
+                      // ... existing code ...
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (userAccountType == 'HK Staff')
+                            DropdownButton<String>(
+                              value: status,
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'Pending',
+                                  child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'In Progress',
+                                  child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Completed',
+                                  child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
+                                ),
+                              ],
+                              onChanged: (String? newStatus) async {
+                                if (newStatus != null) {
+                                  await _updateRequestStatus(requestId, newStatus);
+                                }
+                              },
+                            ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await _firestore.collection('requests').doc(requestId).delete();
+                              setState(() {
+                                snapshot.data!.docs.removeWhere((doc) => doc.id == requestId);
+                              });
+                            },
                           ),
                         ],
-                        onChanged: (String? newStatus) async {
-                          if (newStatus != null) {
-                            await _updateRequestStatus(requestId, newStatus);
-                          }
-                        },
                       ),
                     ),
                   );
@@ -655,6 +684,7 @@ class AssignedNotesPage extends StatefulWidget {
 class _AssignedNotesPageState extends State<AssignedNotesPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   DateTime _selectedDate = DateTime.now();
+  String? userAccountType;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -691,6 +721,7 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
         checkOutDate = DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
 
         return {
+          'docId': doc.id, // Include the document ID
           'reservationId': data['reservationId']?.toString() ?? 'Unknown',
           'room': data['room']?.toString() ?? 'Unknown Room',
           'text': data['text'] ?? 'No requests',
@@ -771,15 +802,77 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFDBB017),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFDBB017),
+        backgroundColor: Colors.transparent, // Make AppBar background transparent
+        elevation: 0, // Remove default AppBar shadow
         automaticallyImplyLeading: false,
-        title: Text(S.current.assignedNotes),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.calendar_today),
-            onPressed: () => _selectDate(context),
+        flexibleSpace: Container(
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+          decoration: BoxDecoration(
+            color: const Color(0xFFDBB017),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.date_range, color:const Color(0xFFDBB017)),
+                    SizedBox(width: 5),
+                    Text(
+                      '${DateFormat('yyyy - MM - dd').format(_selectedDate)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color:const Color(0xFFDBB017),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () => _selectDate(context),
+                borderRadius: BorderRadius.circular(50),
+                child: Container(
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(Icons.calendar_today, color: const Color(0xFFDBB017)),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchAssignedNotes(_selectedDate),
@@ -789,7 +882,7 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text(S.current.noassignednotes));
+            return Center(child: Text(S.current.noassignednotes,style: TextStyle(color: Colors.white),),);
           }
 
           return ListView.builder(
@@ -832,6 +925,26 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('${S.current.status}: $localizedStatus'),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              try {
+                                await _firestore.collection('notes').doc(docId).delete();
+                                setState(() {
+                                  snapshot.data!.removeAt(index);
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Note Deleted')),
+                                );
+                              } catch (e) {
+                                print("Error deleting note: $e");
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(S.current.errorMessage)),
+                                );
+                              }
+                            },
+                          ),
+                          if(userAccountType == 'HK Staff')
                           DropdownButton<String>(
                             value: status,
                             items: _buildStatusDropdownItems(),
@@ -864,6 +977,7 @@ class FrontDeskRequestsPage extends StatefulWidget {
 class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   DateTime _selectedDate = DateTime.now();
+  String? userAccountType;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -902,137 +1016,184 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
     }
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'In Progress':
-        return Colors.blue;
-      case 'Completed':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
+    return Scaffold(
+      backgroundColor: const Color(0xFFDBB017),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent, // Make AppBar background transparent
+        elevation: 0, // Remove default AppBar shadow
+        automaticallyImplyLeading: false,
+        flexibleSpace: Container(
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+          decoration: BoxDecoration(
+            color: const Color(0xFFDBB017),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${S.current.date}: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.date_range, color:const Color(0xFFDBB017)),
+                    SizedBox(width: 5),
+                    Text(
+                      '${DateFormat('yyyy - MM - dd').format(_selectedDate)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color:const Color(0xFFDBB017),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: Icon(Icons.calendar_today, color: Theme.of(context).primaryColor),
-                onPressed: () => _selectDate(context),
+              InkWell(
+                onTap: () => _selectDate(context),
+                borderRadius: BorderRadius.circular(50),
+                child: Container(
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(Icons.calendar_today, color: const Color(0xFFDBB017)),
+                ),
               ),
             ],
           ),
         ),
-        Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _fetchFrontDeskRequestsForDate(_selectedDate),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(child: Text(S.current.nofrontdeskrequests));
-              }
-              return ListView.builder(
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  var request = snapshot.data![index];
-                  String status = request['status'] ?? 'Pending';
-                  String docId = request['docId'] ?? '';
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _fetchFrontDeskRequestsForDate(_selectedDate),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text(S.current.nofrontdeskrequests,style: TextStyle(color: Colors.white),),);
+                }
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    var request = snapshot.data![index];
+                    String status = request['status'] ?? 'Pending';
+                    String docId = request['docId'] ?? '';
 
-                  String localizedStatus;
-                  switch (status) {
-                    case 'Pending':
-                      localizedStatus = S.current.pending;
-                      break;
-                    case 'In Progress':
-                      localizedStatus = S.current.inProgress;
-                      break;
-                    case 'Completed':
-                      localizedStatus = S.current.completed;
-                      break;
-                    default:
-                      localizedStatus = status;
-                  }
+                    String localizedStatus;
+                    switch (status) {
+                      case 'Pending':
+                        localizedStatus = S.current.pending;
+                        break;
+                      case 'In Progress':
+                        localizedStatus = S.current.inProgress;
+                        break;
+                      case 'Completed':
+                        localizedStatus = S.current.completed;
+                        break;
+                      default:
+                        localizedStatus = status;
+                    }
 
-                  return Card(
-                    margin: EdgeInsets.all(8),
-                    child: ListTile(
-                      title: Text(
-                        '${request['requestDetail']}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    return Card(
+                      margin: EdgeInsets.all(8),
+                      child: ListTile(
+                        title: Text(
+                          '${request['requestDetail']}',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('${S.current.status}: $localizedStatus'),
+                               if(userAccountType == 'HK Staff')
+                                DropdownButton<String>(
+                                  value: status,
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: 'Pending',
+                                      child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'In Progress',
+                                      child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Completed',
+                                      child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
+                                    ),
+                                  ],
+                                  onChanged: (String? newStatus) async {
+                                    if (newStatus != null && newStatus != status && docId.isNotEmpty) {
+                                      await _firestore
+                                          .collection('frontdeskRequest')
+                                          .doc(docId)
+                                          .update({'status': newStatus});
+                                      setState(() {});
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () async {
+                                    if (docId.isNotEmpty) {
+                                      await _firestore
+                                          .collection('frontdeskRequest')
+                                          .doc(docId)
+                                          .delete();
+                                      setState(() {
+                                        snapshot.data!.removeAt(index);
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('${S.current.status}: $localizedStatus'),
-                              DropdownButton<String>(
-                                value: status,
-                                items: [
-                                  DropdownMenuItem(
-                                    value: 'Pending',
-                                    child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'In Progress',
-                                    child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Completed',
-                                    child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
-                                  ),
-                                ],
-                                onChanged: (String? newStatus) async {
-                                  if (newStatus != null && newStatus != status && docId.isNotEmpty) {
-                                    await _firestore
-                                        .collection('frontdeskRequest')
-                                        .doc(docId)
-                                        .update({'status': newStatus});
-                                    setState(() {});
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () async {
-                                  if (docId.isNotEmpty) {
-                                    await _firestore
-                                        .collection('frontdeskRequest')
-                                        .doc(docId)
-                                        .delete();
-                                    setState(() {
-                                      snapshot.data!.removeAt(index);
-                                    });
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

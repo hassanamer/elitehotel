@@ -331,442 +331,894 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                           style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFFDBB017)),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final Uint8List logoData =
-                                loadLogo(); // Load the logo data
+                        Flexible(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              print('Current maxWidth: ${constraints.maxWidth}'); // Debugging line
+                              if (constraints.maxWidth > 600) { // Adjust the threshold as needed {
+                                // For web, desktop, and large screens
+                                return     ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final Uint8List logoData =
+                                    loadLogo(); // Load the logo data
 
-                            await Printing.layoutPdf(
-                              onLayout: (PdfPageFormat format) async {
-                                final pdf = pw.Document();
+                                    await Printing.layoutPdf(
+                                      onLayout: (PdfPageFormat format) async {
+                                        final pdf = pw.Document();
 
-                                pdf.addPage(
-                                  pw.Page(
-                                    margin: pw.EdgeInsets.fromLTRB(
-                                        8, 12, 8, 12), // Set margins to zero
-                                    build: (context) => pw.Stack(
-                                      children: [
-                                    // Watermark logo
-                                    pw.Positioned.fill(
-                                    child: pw.Opacity(
-                                      opacity: 0.05, // Set low opacity for watermark effect
-                                      child: pw.Center(
-                                        child: pw.Image(
-                                          pw.MemoryImage(logoData),
-                                          fit: pw.BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                        pw.Container(
-                                          decoration: pw.BoxDecoration(
-                                            border: pw.Border.all(
-                                              color: PdfColors.black,
-                                              width: 2,
-                                            ),
-                                          ),
-                                      padding: const pw.EdgeInsets.all(10),
-                                      child: pw.Column(
-                                        crossAxisAlignment:
-                                            pw.CrossAxisAlignment.start,
-                                        children: [
-                                          // Header with logo and text
-                                          pw.Row(
-                                      mainAxisAlignment: pw.MainAxisAlignment.end,
-                                        children: [
-
-                                          pw.Column(
-                                            crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
-                                            children: [
-                                              pw.Center(
-                                                child: pw.Image(
-                                                  pw.MemoryImage(logoData),
-                                                  width: 680,
-                                                  height: 100,
-                                                ),
-                                              ),
-                                              pw.SizedBox(height: 6),
-                                              pw.Center(
-                                                child: pw.Container(
-                                                  color: PdfColor.fromInt(0xFFDBB017),
-                                                  padding: const pw.EdgeInsets.all(3),
-                                                  child: pw.Text(
-                                                    'ELITE HOTEL',
-                                                    style: pw.TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight: pw.FontWeight.bold,
-                                                      color: PdfColors.white,
+                                        pdf.addPage(
+                                          pw.Page(
+                                            margin: pw.EdgeInsets.fromLTRB(
+                                                8, 12, 8, 12), // Set margins to zero
+                                            build: (context) => pw.Stack(
+                                                children: [
+                                                  // Watermark logo
+                                                  pw.Positioned.fill(
+                                                    child: pw.Opacity(
+                                                      opacity: 0.05, // Set low opacity for watermark effect
+                                                      child: pw.Center(
+                                                        child: pw.Image(
+                                                          pw.MemoryImage(logoData),
+                                                          fit: pw.BoxFit.cover,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                                  pw.Container(
+                                                    decoration: pw.BoxDecoration(
+                                                      border: pw.Border.all(
+                                                        color: PdfColors.black,
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    padding: const pw.EdgeInsets.all(10),
+                                                    child: pw.Column(
+                                                      crossAxisAlignment:
+                                                      pw.CrossAxisAlignment.start,
+                                                      children: [
+                                                        // Header with logo and text
+                                                        pw.Row(
+                                                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                                                          children: [
 
-                                        ],
-                                      ),
-                                          // Centered "INVOICE" text
-                                          pw.Center(
-                                            child: pw.Container(
-                                              color: PdfColor.fromInt(0xFFDBB017),
-                                              padding: const pw.EdgeInsets.all(10),
-                                              child: pw.Text(
-                                                'INVOICE',
-                                                style: pw.TextStyle(
-                                                  fontSize: 30,
-                                                  fontWeight: pw.FontWeight.bold,
-                                                  color: PdfColors.white,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 10),
-                                          // Bill To section
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Date: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Invoice Number: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${widget.invoiceNumber}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Bill To: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${widget.guestName}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Mobile: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${widget.guestNumber}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Room Type: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${widget.roomType}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Room Number: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: '${widget.roomNumber}',
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Check-In Date: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: DateFormat('dd-MM-yyyy').format(widget.checkInDate),
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 6),
-                                          pw.RichText(
-                                            text: pw.TextSpan(
-                                              children: [
-                                                pw.TextSpan(
-                                                  text: 'Check-Out Date: ',
-                                                  style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                ),
-                                                pw.TextSpan(
-                                                  text: DateFormat('dd-MM-yyyy').format(widget.checkOutDate),
-                                                  style: pw.TextStyle(fontSize: 14),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
+                                                            pw.Column(
+                                                              crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
+                                                              children: [
+                                                                pw.Center(
+                                                                  child: pw.Image(
+                                                                    pw.MemoryImage(logoData),
+                                                                    width: 680,
+                                                                    height: 100,
+                                                                  ),
+                                                                ),
+                                                                pw.SizedBox(height: 6),
+                                                                pw.Center(
+                                                                  child: pw.Container(
+                                                                    color: PdfColor.fromInt(0xFFDBB017),
+                                                                    padding: const pw.EdgeInsets.all(3),
+                                                                    child: pw.Text(
+                                                                      'ELITE HOTEL',
+                                                                      style: pw.TextStyle(
+                                                                        fontSize: 16,
+                                                                        fontWeight: pw.FontWeight.bold,
+                                                                        color: PdfColors.white,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
 
-                                          pw.SizedBox(height: 20),
-                                          // Table with updated headers
-                                          pw.Table(
-                                            border: pw.TableBorder.symmetric(
-                                              inside: pw.BorderSide(
-                                                  width: 0.7,
-                                                  color: PdfColors.grey),
-                                              outside: pw.BorderSide(
-                                                  width: 1,
-                                                  color: PdfColors.black),
+                                                          ],
+                                                        ),
+                                                        // Centered "INVOICE" text
+                                                        pw.Center(
+                                                          child: pw.Container(
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                            padding: const pw.EdgeInsets.all(10),
+                                                            child: pw.Text(
+                                                              'INVOICE',
+                                                              style: pw.TextStyle(
+                                                                fontSize: 30,
+                                                                fontWeight: pw.FontWeight.bold,
+                                                                color: PdfColors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 10),
+                                                        // Bill To section
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Invoice Number: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.invoiceNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Bill To: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.guestName}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Mobile: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.guestNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Room Type: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.roomType}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Room Number: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.roomNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Check-In Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: DateFormat('dd-MM-yyyy').format(widget.checkInDate),
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Check-Out Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: DateFormat('dd-MM-yyyy').format(widget.checkOutDate),
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+
+                                                        pw.SizedBox(height: 20),
+                                                        // Table with updated headers
+                                                        pw.Table(
+                                                          border: pw.TableBorder.symmetric(
+                                                            inside: pw.BorderSide(
+                                                                width: 0.7,
+                                                                color: PdfColors.grey),
+                                                            outside: pw.BorderSide(
+                                                                width: 1,
+                                                                color: PdfColors.black),
+                                                          ),
+                                                          children: [
+                                                            pw.TableRow(
+                                                              children: [
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Item',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Number',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Price',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Total',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Remaining',
+                                                                      style: pw.TextStyle(
+                                                                          color:
+                                                                          PdfColors.black,
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text(
+                                                                      'Payment Method',
+                                                                      style: pw.TextStyle(
+                                                                          color:
+                                                                          PdfColors.black,
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            pw.TableRow(
+                                                              children: [
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child:
+                                                                  pw.Text('Hotel Nights'),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '$totalNights'), // Number
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${nightlyRate.toStringAsFixed(2)}'), // Price
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${widget.totalCost.toStringAsFixed(2)}'), // Total
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${widget.remainingBalance.toStringAsFixed(2)}',
+                                                                      style: pw.TextStyle(
+                                                                          color: PdfColors
+                                                                              .black)), // Remaining
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '${widget.paymentMethod}',
+                                                                      style: pw.TextStyle(
+                                                                          color: PdfColors
+                                                                              .black)), // Payment Method
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        pw.SizedBox(height: 20),
+                                                        // Footer with hotel contact and signature
+                                                        pw.Text('Thank you for choosing us!',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                pw.FontWeight.bold)),
+                                                        pw.SizedBox(height: 8),
+                                                        pw.Text(
+                                                          'We hope you enjoyed your stay and experienced the luxury.',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: pw.FontWeight.bold,
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 5),
+
+                                                        pw.Text(
+                                                          'We look forward to another memorable stay!',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: pw.FontWeight.bold,
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 30),
+
+                                                        pw.Row(
+                                                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                                                          children: [
+                                                            pw.Column(
+                                                              crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
+                                                              children: [
+                                                                pw.BarcodeWidget(
+                                                                  barcode: pw.Barcode.qrCode(),
+                                                                  data: 'https://elitehotel.com/feedback',
+                                                                  width: 80,
+                                                                  height: 80,
+                                                                ),
+                                                                pw.SizedBox(height: 10),
+                                                                pw.Text('Hotel Contact: 123-456-7890',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                                pw.SizedBox(height: 6),
+                                                                pw.Text(
+                                                                    'Address: 123 Elite St, Luxury City',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                                pw.SizedBox(height: 20),
+                                                                pw.Text(
+                                                                    'Signature: ____________________',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                              ],
+                                                            ),
+
+                                                          ],
+                                                        ),
+
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ]
                                             ),
-                                            children: [
-                                              pw.TableRow(
-                                                children: [
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text('Item',
-                                                        style: pw.TextStyle(
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text('Number',
-                                                        style: pw.TextStyle(
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text('Price',
-                                                        style: pw.TextStyle(
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text('Total',
-                                                        style: pw.TextStyle(
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text('Remaining',
-                                                        style: pw.TextStyle(
-                                                            color:
-                                                                PdfColors.black,
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            5.0),
-                                                    child: pw.Text(
-                                                        'Payment Method',
-                                                        style: pw.TextStyle(
-                                                            color:
-                                                                PdfColors.black,
-                                                            fontWeight: pw
-                                                                .FontWeight
-                                                                .bold)),
-                                                  ),
-                                                ],
-                                              ),
-                                              pw.TableRow(
-                                                children: [
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child:
-                                                        pw.Text('Hotel Nights'),
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child: pw.Text(
-                                                        '$totalNights'), // Number
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child: pw.Text(
-                                                        '\$${nightlyRate.toStringAsFixed(2)}'), // Price
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child: pw.Text(
-                                                        '\$${widget.totalCost.toStringAsFixed(2)}'), // Total
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child: pw.Text(
-                                                        '\$${widget.remainingBalance.toStringAsFixed(2)}',
-                                                        style: pw.TextStyle(
-                                                            color: PdfColors
-                                                                .black)), // Remaining
-                                                  ),
-                                                  pw.Padding(
-                                                    padding:
-                                                        const pw.EdgeInsets.all(
-                                                            8.0),
-                                                    child: pw.Text(
-                                                        '${widget.paymentMethod}',
-                                                        style: pw.TextStyle(
-                                                            color: PdfColors
-                                                                .black)), // Payment Method
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
                                           ),
-                                          pw.SizedBox(height: 20),
-                                          // Footer with hotel contact and signature
-                                          pw.Text('Thank you for choosing us!',
-                                              style: pw.TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      pw.FontWeight.bold)),
-                                          pw.SizedBox(height: 8),
-                                          pw.Text(
-                                            'We hope you enjoyed your stay and experienced the luxury.',
-                                            style: pw.TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: pw.FontWeight.bold,
-                                              color: PdfColor.fromInt(0xFFDBB017),
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 5),
-
-                                          pw.Text(
-                                            'We look forward to another memorable stay!',
-                                            style: pw.TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: pw.FontWeight.bold,
-                                              color: PdfColor.fromInt(0xFFDBB017),
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 30),
-
-                                          pw.Row(
-                                            mainAxisAlignment: pw.MainAxisAlignment.end,
-                                            children: [
-                                              pw.Column(
-                                                crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
-                                                children: [
-                                                  pw.BarcodeWidget(
-                                                    barcode: pw.Barcode.qrCode(),
-                                                    data: 'https://elitehotel.com/feedback',
-                                                    width: 80,
-                                                    height: 80,
-                                                  ),
-                                                  pw.SizedBox(height: 10),
-                                                  pw.Text('Hotel Contact: 123-456-7890',
-                                                      style:
-                                                      pw.TextStyle(fontSize: 12)),
-                                                  pw.SizedBox(height: 6),
-                                                  pw.Text(
-                                                      'Address: 123 Elite St, Luxury City',
-                                                      style:
-                                                      pw.TextStyle(fontSize: 12)),
-                                                  pw.SizedBox(height: 20),
-                                                  pw.Text(
-                                                      'Signature: ____________________',
-                                                      style:
-                                                      pw.TextStyle(fontSize: 12)),
-                                                ],
-                                              ),
-
-                                            ],
-                                          ),
-
-                                        ],
-                                      ),
-                                    ),
-                                  ]
-                                    ),
-                                ),
+                                        );
+                                        return pdf.save();
+                                      },
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.print,
+                                    color: Colors.black,
+                                  ),
+                                  label: const Text(
+                                    'Print Invoice',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDBB017),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 30),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15)),
+                                    textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
                                 );
-                                return pdf.save();
-                              },
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.print,
-                            color: Colors.black,
+                              } else {
+                                // For mobile and smaller screens
+                                return                         ElevatedButton.icon(
+
+                                  onPressed: () async {
+                                    final Uint8List logoData =
+                                    loadLogo(); // Load the logo data
+
+                                    await Printing.layoutPdf(
+                                      onLayout: (PdfPageFormat format) async {
+                                        final pdf = pw.Document();
+
+                                        pdf.addPage(
+                                          pw.Page(
+                                            margin: pw.EdgeInsets.fromLTRB(
+                                                8, 12, 8, 12), // Set margins to zero
+                                            build: (context) => pw.Stack(
+                                                children: [
+                                                  // Watermark logo
+                                                  pw.Positioned.fill(
+                                                    child: pw.Opacity(
+                                                      opacity: 0.05, // Set low opacity for watermark effect
+                                                      child: pw.Center(
+                                                        child: pw.Image(
+                                                          pw.MemoryImage(logoData),
+                                                          fit: pw.BoxFit.cover,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  pw.Container(
+                                                    decoration: pw.BoxDecoration(
+                                                      border: pw.Border.all(
+                                                        color: PdfColors.black,
+                                                        width: 2,
+                                                      ),
+                                                    ),
+                                                    padding: const pw.EdgeInsets.all(10),
+                                                    child: pw.Column(
+                                                      crossAxisAlignment:
+                                                      pw.CrossAxisAlignment.start,
+                                                      children: [
+                                                        // Header with logo and text
+                                                        pw.Row(
+                                                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                                                          children: [
+
+                                                            pw.Column(
+                                                              crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
+                                                              children: [
+                                                                pw.Center(
+                                                                  child: pw.Image(
+                                                                    pw.MemoryImage(logoData),
+                                                                    width: 680,
+                                                                    height: 100,
+                                                                  ),
+                                                                ),
+                                                                pw.SizedBox(height: 6),
+                                                                pw.Center(
+                                                                  child: pw.Container(
+                                                                    color: PdfColor.fromInt(0xFFDBB017),
+                                                                    padding: const pw.EdgeInsets.all(3),
+                                                                    child: pw.Text(
+                                                                      'ELITE HOTEL',
+                                                                      style: pw.TextStyle(
+                                                                        fontSize: 16,
+                                                                        fontWeight: pw.FontWeight.bold,
+                                                                        color: PdfColors.white,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+
+                                                          ],
+                                                        ),
+                                                        // Centered "INVOICE" text
+                                                        pw.Center(
+                                                          child: pw.Container(
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                            padding: const pw.EdgeInsets.all(10),
+                                                            child: pw.Text(
+                                                              'INVOICE',
+                                                              style: pw.TextStyle(
+                                                                fontSize: 30,
+                                                                fontWeight: pw.FontWeight.bold,
+                                                                color: PdfColors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 10),
+                                                        // Bill To section
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Invoice Number: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.invoiceNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Bill To: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.guestName}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Mobile: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.guestNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Room Type: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.roomType}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Room Number: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: '${widget.roomNumber}',
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Check-In Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: DateFormat('dd-MM-yyyy').format(widget.checkInDate),
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 6),
+                                                        pw.RichText(
+                                                          text: pw.TextSpan(
+                                                            children: [
+                                                              pw.TextSpan(
+                                                                text: 'Check-Out Date: ',
+                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                                              ),
+                                                              pw.TextSpan(
+                                                                text: DateFormat('dd-MM-yyyy').format(widget.checkOutDate),
+                                                                style: pw.TextStyle(fontSize: 14),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+
+                                                        pw.SizedBox(height: 20),
+                                                        // Table with updated headers
+                                                        pw.Table(
+                                                          border: pw.TableBorder.symmetric(
+                                                            inside: pw.BorderSide(
+                                                                width: 0.7,
+                                                                color: PdfColors.grey),
+                                                            outside: pw.BorderSide(
+                                                                width: 1,
+                                                                color: PdfColors.black),
+                                                          ),
+                                                          children: [
+                                                            pw.TableRow(
+                                                              children: [
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Item',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Number',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Price',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Total',
+                                                                      style: pw.TextStyle(
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text('Remaining',
+                                                                      style: pw.TextStyle(
+                                                                          color:
+                                                                          PdfColors.black,
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      5.0),
+                                                                  child: pw.Text(
+                                                                      'Payment Method',
+                                                                      style: pw.TextStyle(
+                                                                          color:
+                                                                          PdfColors.black,
+                                                                          fontWeight: pw
+                                                                              .FontWeight
+                                                                              .bold)),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            pw.TableRow(
+                                                              children: [
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child:
+                                                                  pw.Text('Hotel Nights'),
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '$totalNights'), // Number
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${nightlyRate.toStringAsFixed(2)}'), // Price
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${widget.totalCost.toStringAsFixed(2)}'), // Total
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '\$${widget.remainingBalance.toStringAsFixed(2)}',
+                                                                      style: pw.TextStyle(
+                                                                          color: PdfColors
+                                                                              .black)), // Remaining
+                                                                ),
+                                                                pw.Padding(
+                                                                  padding:
+                                                                  const pw.EdgeInsets.all(
+                                                                      8.0),
+                                                                  child: pw.Text(
+                                                                      '${widget.paymentMethod}',
+                                                                      style: pw.TextStyle(
+                                                                          color: PdfColors
+                                                                              .black)), // Payment Method
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        pw.SizedBox(height: 20),
+                                                        // Footer with hotel contact and signature
+                                                        pw.Text('Thank you for choosing us!',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                pw.FontWeight.bold)),
+                                                        pw.SizedBox(height: 8),
+                                                        pw.Text(
+                                                          'We hope you enjoyed your stay and experienced the luxury.',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: pw.FontWeight.bold,
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 5),
+
+                                                        pw.Text(
+                                                          'We look forward to another memorable stay!',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: pw.FontWeight.bold,
+                                                            color: PdfColor.fromInt(0xFFDBB017),
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 30),
+
+                                                        pw.Row(
+                                                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                                                          children: [
+                                                            pw.Column(
+                                                              crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
+                                                              children: [
+                                                                pw.BarcodeWidget(
+                                                                  barcode: pw.Barcode.qrCode(),
+                                                                  data: 'https://elitehotel.com/feedback',
+                                                                  width: 80,
+                                                                  height: 80,
+                                                                ),
+                                                                pw.SizedBox(height: 10),
+                                                                pw.Text('Hotel Contact: 123-456-7890',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                                pw.SizedBox(height: 6),
+                                                                pw.Text(
+                                                                    'Address: 123 Elite St, Luxury City',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                                pw.SizedBox(height: 20),
+                                                                pw.Text(
+                                                                    'Signature: ____________________',
+                                                                    style:
+                                                                    pw.TextStyle(fontSize: 12)),
+                                                              ],
+                                                            ),
+
+                                                          ],
+                                                        ),
+
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ]
+                                            ),
+                                          ),
+                                        );
+                                        return pdf.save();
+                                      },
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.print,
+                                    color: Colors.black,
+                                    size: 15,
+                                  ),
+                                  label: const Text(
+                                    'Print Invoice',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+
+                                    backgroundColor: const Color(0xFFDBB017),
+                                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8), // Adjust padding
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15)),
+                                    textStyle: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black),
+                                  ),
+                                )
+                                ;
+                              }
+                            },
                           ),
-                          label: const Text(
-                            'Print Invoice',
-                            style: TextStyle(color: Colors.black),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFDBB017),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 30),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15)),
-                            textStyle: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black),
-                          ),
-                        )
+                        ),
+
                       ],
                     ),
                   ],

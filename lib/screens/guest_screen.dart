@@ -61,9 +61,14 @@ class _GuestScreenState extends State<GuestScreen> {
           return {
             'reservationId': reservationData['reservationId'] ?? 'Unknown',
             'name': reservationData['guestName'] ?? 'Unknown',
+            'guestAddress': reservationData['guestAddress'] ?? 'Unknown',
             'roomNumber': reservationData['roomNumber'] ?? 'Unknown',
+            'nationality': reservationData['nationality'] ?? 'Unknown',
+            'job': reservationData['job'] ?? 'Unknown',
             'totalAmount': reservationData['totalCost']?.toString() ?? '0',
             'amountPaid': reservationData['amountPaid']?.toString() ?? '0',
+            'nationalId': reservationData['nationalId']?.toString() ?? '0',
+            'mobileNumber': reservationData['mobileNumber']?.toString() ?? '0',
             'status': roomInfo['status'] ?? 'Unknown',
             'checkInOut': checkInOutStatus,
           };
@@ -228,6 +233,9 @@ class _GuestScreenState extends State<GuestScreen> {
                         DataColumn(
                             label: Text(S.current.checkInOut,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('More',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
                       rows: filteredData.map((guest) {
                         return DataRow(cells: [
@@ -252,6 +260,19 @@ class _GuestScreenState extends State<GuestScreen> {
                                 color: getStatusColor(guest['checkInOut']!),
                                 fontWeight: FontWeight.w600,
                               ),
+                            ),
+                          ),
+                          DataCell(
+                            IconButton(
+                              icon: Icon(Icons.info),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GuestDetailScreen(guest: guest),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ]);
@@ -352,6 +373,9 @@ class _GuestScreenState extends State<GuestScreen> {
                         DataColumn(
                             label: Text(S.current.checkInOut,
                                 style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('More',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
                       ],
                       rows: filteredData.map((guest) {
                         return DataRow(cells: [
@@ -378,6 +402,19 @@ class _GuestScreenState extends State<GuestScreen> {
                               ),
                             ),
                           ),
+                          DataCell(
+                            IconButton(
+                              icon: Icon(Icons.info),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GuestDetailScreen(guest: guest),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ]);
                       }).toList(),
                     ),
@@ -389,5 +426,79 @@ class _GuestScreenState extends State<GuestScreen> {
         ),
       );
     }
+  }
+}
+
+class GuestDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> guest;
+
+  GuestDetailScreen({required this.guest}) {
+    // Print the guest data to debug
+    print('Guest Data in Detail Screen: $guest');
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Guest Details'),
+        backgroundColor: const Color(0xFFDBB017),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            _buildDetailCard('Name', guest['name'], Icons.person),
+            _buildDetailCard('Address', guest['guestAddress'] ?? 'N/A', Icons.home),
+            _buildDetailCard('Job', guest['job'], Icons.work),
+            _buildDetailCard('Mobile Number', guest['mobileNumber'], Icons.phone),
+            _buildDetailCard('National ID', guest['nationalId'], Icons.badge),
+            _buildDetailCard('Nationality', guest['nationality'], Icons.flag),
+            // Add more cards for additional details if needed
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildDetailCard(String title, String value, IconData icon) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 30, color: Colors.grey[700]),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
