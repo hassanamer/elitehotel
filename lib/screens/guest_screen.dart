@@ -137,7 +137,7 @@ class _GuestScreenState extends State<GuestScreen> {
       return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text('Guest Management',
+          title:  Text(S.current.guestManagement,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           backgroundColor: const Color(0xFFDBB017),
         ),
@@ -242,8 +242,8 @@ class _GuestScreenState extends State<GuestScreen> {
                           DataCell(Text(guest['reservationId'].toString())),
                           DataCell(Text(guest['name']!)),
                           DataCell(Text(guest['roomNumber']!)),
-                          DataCell(Text('\$${guest['totalAmount']}')),
-                          DataCell(Text('\$${guest['amountPaid']}')),
+                          DataCell(Text('${guest['totalAmount']}')),
+                          DataCell(Text('${guest['amountPaid']}')),
                           DataCell(
                             Text(
                               guest['status']!,

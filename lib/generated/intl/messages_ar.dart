@@ -154,6 +154,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "guestRequest": MessageLookupByLibrary.simpleMessage("طلب الضيف"),
         "guestRequests": MessageLookupByLibrary.simpleMessage("طلبات الضيوف"),
         "guests": MessageLookupByLibrary.simpleMessage("النزلاء"),
+        "hKattendancehis":
+            MessageLookupByLibrary.simpleMessage("سجل خدمة الغرف"),
         "hello": m6,
         "home": MessageLookupByLibrary.simpleMessage("الرئيسية"),
         "homeTitle": MessageLookupByLibrary.simpleMessage("فندق إيليت"),
@@ -198,6 +200,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "miniSuite": MessageLookupByLibrary.simpleMessage("جناح صغير"),
         "minibar": MessageLookupByLibrary.simpleMessage("ميني-بار"),
         "mobileNumber": MessageLookupByLibrary.simpleMessage("رقم الهاتف"),
+        "monthlypaymentmethods":
+            MessageLookupByLibrary.simpleMessage("سجل وسائل الدفع الشهرية"),
         "monthreservations":
             MessageLookupByLibrary.simpleMessage("إجمالي حجوزات الشهر"),
         "name": MessageLookupByLibrary.simpleMessage("الاسم"),
@@ -205,6 +209,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "nationality": MessageLookupByLibrary.simpleMessage("الجنسية"),
         "newUser": MessageLookupByLibrary.simpleMessage("مستخدم جديد"),
         "nightPrice": MessageLookupByLibrary.simpleMessage("سعر الليلة"),
+        "nights": MessageLookupByLibrary.simpleMessage("الليالي"),
         "noAccess": MessageLookupByLibrary.simpleMessage(
             "لا يمكنك الوصول إلى هذه الصفحة"),
         "noAvailablerooms": MessageLookupByLibrary.simpleMessage(
@@ -222,10 +227,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("لا توجد طلبات من الريسبشن"),
         "noteFrequency":
             MessageLookupByLibrary.simpleMessage("اختر تكرار الملاحظة"),
-        "notes": MessageLookupByLibrary.simpleMessage(
-            "ملاحظات (على سبيل المثال، طلب الإفطار)"),
-        "notesBreakfast":
-            MessageLookupByLibrary.simpleMessage("ملاحظات (مثل طلب الإفطار)"),
+        "notes": MessageLookupByLibrary.simpleMessage("ملاحظات"),
+        "notesBreakfast": MessageLookupByLibrary.simpleMessage("ملاحظات"),
         "nov": MessageLookupByLibrary.simpleMessage("نوفمبر"),
         "numberOfAdults": MessageLookupByLibrary.simpleMessage("عدد البالغين"),
         "numberOfChildren": MessageLookupByLibrary.simpleMessage("عدد الأطفال"),
@@ -239,6 +242,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "package": MessageLookupByLibrary.simpleMessage("الحزمة"),
         "password": MessageLookupByLibrary.simpleMessage("كلمة المرور"),
         "paymenMethod": MessageLookupByLibrary.simpleMessage("وسيلة الدفع"),
+        "paymentmethods":
+            MessageLookupByLibrary.simpleMessage("سجل وسائل الدفع"),
         "pending": MessageLookupByLibrary.simpleMessage("قيد الانتظار"),
         "pleaseCheckinDate":
             MessageLookupByLibrary.simpleMessage("من فضلك أدخل تاريخ الوصول"),
@@ -280,6 +285,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "roomStatus": MessageLookupByLibrary.simpleMessage("حالة الغرف"),
         "roomType": MessageLookupByLibrary.simpleMessage("نوع الغرفة"),
         "rooms": MessageLookupByLibrary.simpleMessage("الغرف"),
+        "savechanges": MessageLookupByLibrary.simpleMessage("حفظ المتغيرات"),
         "searchBy": MessageLookupByLibrary.simpleMessage(
             "البحث بالاسم أو الرقم أو الغرفة"),
         "searchByPackage":
@@ -335,6 +341,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("مغادرة اليوم\nالجدد"),
         "todaysCheckOutsMobile":
             MessageLookupByLibrary.simpleMessage("مغادرة اليوم الجدد"),
+        "todayspaymentmethods":
+            MessageLookupByLibrary.simpleMessage("سجل وسائل الدفع اليومية"),
         "totalAmount": MessageLookupByLibrary.simpleMessage("المبلغ الإجمالي"),
         "totalAvailableRooms":
             MessageLookupByLibrary.simpleMessage("إجمالي\nالغرف المتاحة"),
@@ -351,6 +359,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("إجمالي\nالغرف المشغولة"),
         "totalOccupiedRoomsMobile":
             MessageLookupByLibrary.simpleMessage("إجمالي الغرف المشغولة"),
+        "totalnights": MessageLookupByLibrary.simpleMessage("عدد الليالي"),
         "tv": MessageLookupByLibrary.simpleMessage("تلفاز"),
         "unknown": MessageLookupByLibrary.simpleMessage("غير معروف"),
         "upcoming": MessageLookupByLibrary.simpleMessage("قيد الانتظار"),

@@ -34,7 +34,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeFirebase();
   runApp(MyApp(key: myAppKey));
-  
+
 }
 
 
@@ -55,25 +55,7 @@ Future<void> initializeFirebase() async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-  // // // Create an initial notification to start the service in the foreground
-  // // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  // // FlutterLocalNotificationsPlugin();
-  // // const AndroidNotificationDetails androidPlatformChannelSpecifics =
-  // // AndroidNotificationDetails(
-  // //     'foreground_channel_id', 'Foreground Service',
-  // //     channelDescription: 'This notification keeps the background service running.',
-  // //     importance: Importance.low,
-  // //     priority: Priority.low,
-  // //     showWhen: false);
-  // // const NotificationDetails platformChannelSpecifics =
-  // // NotificationDetails(android: androidPlatformChannelSpecifics);
-  //
-  // // Display the notification immediately to start the service in foreground
-  // await flutterLocalNotificationsPlugin.show(
-  //     0,
-  //     'Elite Hotel Service',
-  //     'Background service running...',
-  //     platformChannelSpecifics);
+
 
   // Initialize Firebase
   await Firebase.initializeApp();
@@ -195,8 +177,14 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    initializeService();
-    _setupUserPages();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        Navigator.of(context).pushReplacementNamed('/signup');
+      } else {
+        _setupUserPages();
+        initializeService();
+      }
+    });
   }
 
   @override
@@ -306,11 +294,11 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final appBar = AppBar(
       automaticallyImplyLeading: false,
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.hotel, color: Color(0xFFDBB017)),
-          SizedBox(width: 8),
-          Text('Elite Hotel', style: TextStyle(color: Color(0xFFDBB017))),
+          const Icon(Icons.hotel, color: Color(0xFFDBB017)),
+          const SizedBox(width: 8),
+          Text(S.current.appTitle, style: const TextStyle(color: Color(0xFFDBB017),),),
         ],
       ),
       backgroundColor: Colors.white,
@@ -326,6 +314,7 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: appBar,
+
       body: screenWidth > 600
           ? Row(
         children: [
@@ -342,6 +331,7 @@ class _MainScreenState extends State<MainScreen> {
         ],
       )
           : Scaffold(
+
         drawer: Drawer(
           child: SideMenu(onItemTapped: _onItemTapped, visiblePages: visiblePages),
         ),

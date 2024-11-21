@@ -85,7 +85,7 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
             _buildAmountCard(S.current.monthreservations, monthlyAmount),
             const SizedBox(height: 16),
             Text(
-              S.current.paymenMethod,
+              S.current.paymentmethods,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -93,15 +93,32 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
               ),
             ),
             const SizedBox(height: 16),
-            ...todayPaymentMethods.entries.map((entry) => _buildAmountCard('Today ${entry.key}', entry.value)).toList(),
+            Text(
+              S.current.todayspaymentmethods,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
             const SizedBox(height: 8),
-            ...monthlyPaymentMethods.entries.map((entry) => _buildAmountCard('Month ${entry.key}', entry.value)).toList(),
+            ...todayPaymentMethods.entries.map((entry) => _buildAmountCard('${entry.key}', entry.value)).toList(),
+            const SizedBox(height: 16),
+            Text(
+              S.current.monthlypaymentmethods,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...monthlyPaymentMethods.entries.map((entry) => _buildAmountCard('${entry.key}', entry.value)).toList(),
           ],
         ),
       ),
     );
   }
-
   Widget _buildAmountCard(String title, double amount) {
     return Card(
       color: Colors.white,

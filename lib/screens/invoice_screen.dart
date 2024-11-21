@@ -10,6 +10,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../generated/l10n.dart';
+
 class InvoiceScreen extends StatefulWidget {
   final String guestName;
   final String roomType;
@@ -23,6 +25,7 @@ class InvoiceScreen extends StatefulWidget {
   final double remainingBalance;
   final int invoiceNumber;
   final int reservationId;
+  final int totalNights;
   final DateTime creationDate;
 
   const InvoiceScreen({
@@ -33,6 +36,7 @@ class InvoiceScreen extends StatefulWidget {
     required this.guestNumber,
     required this.checkInDate,
     required this.paymentMethod,
+    required this.totalNights,
     required this.checkOutDate,
     required this.amountPaid,
     required this.reservationId,
@@ -66,7 +70,11 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
     paidController = TextEditingController(
       text: widget.amountPaid.toStringAsFixed(2),
     );
+    // Add listeners to update fields
+    paidController.addListener(_updateRemainingBalance);
+    remainingBalanceController.addListener(_updateAmountPaid);
   }
+
 
   @override
   void dispose() {
@@ -74,6 +82,26 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
     paidController.dispose();
     totalCostController.dispose();
     super.dispose();
+  }
+
+  void _updateRemainingBalance() {
+    double totalCost = double.tryParse(totalCostController.text) ?? 0.0;
+    double amountPaid = double.tryParse(paidController.text) ?? 0.0;
+    double remainingBalance = totalCost - amountPaid;
+
+    if (remainingBalance != double.tryParse(remainingBalanceController.text)) {
+      remainingBalanceController.text = remainingBalance.toStringAsFixed(2);
+    }
+  }
+
+  void _updateAmountPaid() {
+    double totalCost = double.tryParse(totalCostController.text) ?? 0.0;
+    double remainingBalance = double.tryParse(remainingBalanceController.text) ?? 0.0;
+    double amountPaid = totalCost - remainingBalance;
+
+    if (amountPaid != double.tryParse(paidController.text)) {
+      paidController.text = amountPaid.toStringAsFixed(2);
+    }
   }
 
   Uint8List loadLogo() {
@@ -261,56 +289,61 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildInvoiceDetail('Invoice Number',
+                            _buildInvoiceDetail(S.current.invoicesNumber,
                                 '${widget.invoiceNumber}', Icons.receipt),
                             _buildDivider(),
                             _buildInvoiceDetail(
-                                'Guest Name', widget.guestName, Icons.person),
+                                S.current.guestNameLabel, widget.guestName, Icons.person),
                             _buildDivider(),
                             _buildInvoiceDetail(
-                                'Room Type', widget.roomType, Icons.king_bed),
+                                S.current.roomType, widget.roomType, Icons.king_bed),
                             _buildDivider(),
-                            _buildInvoiceDetail('Room Number',
+                            _buildInvoiceDetail(S.current.roomNumber,
                                 widget.roomNumber, Icons.door_front_door),
                             _buildDivider(),
-                            _buildInvoiceDetail('Payment Method',
+                            _buildInvoiceDetail(S.current.paymenMethod,
                                 widget.paymentMethod ?? 'N/A', Icons.payment),
                             _buildDivider(),
                             _buildInvoiceDetail(
-                                'Check-In Date',
+                                S.current.checkInDate,
                                 DateFormat('yyyy-MM-dd')
                                     .format(widget.checkInDate),
                                 Icons.calendar_today),
                             _buildDivider(),
                             _buildInvoiceDetail(
-                                'Check-Out Date',
+                                S.current.checkOutDate,
                                 DateFormat('yyyy-MM-dd')
                                     .format(widget.checkOutDate),
                                 Icons.calendar_today_outlined),
                             _buildDivider(),
                             _buildInvoiceDetail(
-                                'Creation Date',
+                                S.current.totalnights,
+                              '${widget.totalNights}' ,
+                                Icons.calendar_today_outlined),
+                            _buildDivider(),
+                            _buildInvoiceDetail(
+                                S.current.creationDate,
                                 DateFormat('yyyy-MM-dd')
                                     .format(widget.creationDate),
                                 Icons.date_range),
                             _buildDivider(),
                             _buildEditableField(
-                                'Total Cost',
-                                '\$${widget.totalCost.toStringAsFixed(2)}',
-                                Icons.attach_money,
+                                S.current.totalCost,
+                                '${widget.totalCost.toStringAsFixed(2)}',
+                                Icons.money,
                                 isEditable: true,
                                 controller: totalCostController),
                             _buildDivider(),
                             _buildEditableField(
-                                'Amount Paid',
-                                '\$${widget.amountPaid.toStringAsFixed(2)}',
+                                S.current.amountPaid,
+                                '${widget.amountPaid.toStringAsFixed(2)}',
                                 Icons.money_off_csred_sharp,
                                 isEditable: true,
                                 controller: paidController),
                             _buildDivider(),
                             _buildEditableField(
-                                'Remaining Balance',
-                                '\$${widget.remainingBalance.toStringAsFixed(2)}',
+                                S.current.remainingBalanceLabel,
+                                '${widget.remainingBalance.toStringAsFixed(2)}',
                                 Icons.account_balance_wallet,
                                 isEditable: true,
                                 controller: remainingBalanceController),
@@ -326,8 +359,9 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                           onPressed: () async {
                             await _updateReservationDetails();
                           },
-                          icon: Icon(Icons.save),
-                          label: Text('Save Changes'),
+                          icon: Icon(Icons.save,color: Colors.black,),
+                          label: Text(S.current.savechanges, style: TextStyle(color: Colors.black,fontSize: 15,fontWeight: FontWeight.bold),),
+
                           style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFFDBB017)),
                         ),
@@ -416,14 +450,26 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                           child: pw.Container(
                                                             color: PdfColor.fromInt(0xFFDBB017),
                                                             padding: const pw.EdgeInsets.all(10),
-                                                            child: pw.Text(
-                                                              'INVOICE',
-                                                              style: pw.TextStyle(
-                                                                fontSize: 30,
-                                                                fontWeight: pw.FontWeight.bold,
-                                                                color: PdfColors.white,
+                                                            child:
+                                                            pw.Column(children: [
+                                                              pw.Text(
+                                                                'INVOICE',
+                                                                style: pw.TextStyle(
+                                                                  fontSize: 30,
+                                                                  fontWeight: pw.FontWeight.bold,
+                                                                  color: PdfColors.white,
+                                                                ),
                                                               ),
-                                                            ),
+                                                              pw.SizedBox(height: 5),
+                                                              pw.Text(
+                                                                'Invoice Number: ${widget.invoiceNumber}',
+                                                                style: pw.TextStyle(
+                                                                  fontSize: 20,
+                                                                  fontWeight: pw.FontWeight.bold,
+                                                                  color: PdfColors.white,
+                                                                ),
+                                                              ),
+                                                            ])
                                                           ),
                                                         ),
                                                         pw.SizedBox(height: 10),
@@ -437,20 +483,6 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                               ),
                                                               pw.TextSpan(
                                                                 text: '${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
-                                                                style: pw.TextStyle(fontSize: 14),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        pw.RichText(
-                                                          text: pw.TextSpan(
-                                                            children: [
-                                                              pw.TextSpan(
-                                                                text: 'Invoice Number: ',
-                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                              ),
-                                                              pw.TextSpan(
-                                                                text: '${widget.invoiceNumber}',
                                                                 style: pw.TextStyle(fontSize: 14),
                                                               ),
                                                             ],
@@ -649,21 +681,21 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${nightlyRate.toStringAsFixed(2)}'), // Price
+                                                                      '${nightlyRate.toStringAsFixed(2)}'), // Price
                                                                 ),
                                                                 pw.Padding(
                                                                   padding:
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${widget.totalCost.toStringAsFixed(2)}'), // Total
+                                                                      '${widget.totalCost.toStringAsFixed(2)}'), // Total
                                                                 ),
                                                                 pw.Padding(
                                                                   padding:
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${widget.remainingBalance.toStringAsFixed(2)}',
+                                                                      '${widget.remainingBalance.toStringAsFixed(2)}',
                                                                       style: pw.TextStyle(
                                                                           color: PdfColors
                                                                               .black)), // Remaining
@@ -708,36 +740,66 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                             color: PdfColor.fromInt(0xFFDBB017),
                                                           ),
                                                         ),
-                                                        pw.SizedBox(height: 30),
+                                                        pw.SizedBox(height: 40),
 
                                                         pw.Row(
-                                                          mainAxisAlignment: pw.MainAxisAlignment.end,
+                                                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                                                           children: [
-                                                            pw.Column(
-                                                              crossAxisAlignment: pw.CrossAxisAlignment.center, // Center the column content
+                                                            pw.Row(
+                                                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                                                               children: [
+                                                                pw.Column(
+                                                                    crossAxisAlignment: pw.CrossAxisAlignment.start, // Center the column content
+                                                                    children: [
+                                                                      pw.Column(
+                                                                          mainAxisAlignment: pw.MainAxisAlignment.start,
+
+                                                                          children: [
+                                                                        pw.Text('Hotel Contact',style: pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.bold),),
+                                                                        pw.SizedBox(height: 6),
+                                                                        pw.Text('01015231391',style: pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.normal),),
+                                                                        pw.SizedBox(height: 4),
+                                                                        pw.Text('0223052590',style: pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.normal),),
+                                                                        pw.SizedBox(height: 4),
+                                                                      ])
+                                                                  ,
+                                                                    pw.Text(
+                                                                        'Address',
+                                                                        style:
+                                                                        pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.bold)),
+                                                                      pw.SizedBox(height: 5),
+
+                                                                      pw.Text(' El-Nasr Rd, Masaken Al Mohandesin, Nasr City',style: pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.normal),),
+
+                                                                      pw.SizedBox(height: 40),
+
+                                                                      pw.Text(
+                                                                          'Signature: ____________________',
+                                                                          style:
+                                                                          pw.TextStyle(fontSize: 12)),
+                                                                  ]
+                                                                ),
+
+
+                                                              ]
+                                                            ),
+                                                            pw.Spacer(),
+                                                            pw.Padding(child:
+                                                            pw.Column(
+                                                              children: [
+                                                                pw.Text('About Us',style: pw.TextStyle(fontSize: 14,fontWeight: pw.FontWeight.bold)),
+                                                                pw.SizedBox(height: 6),
                                                                 pw.BarcodeWidget(
                                                                   barcode: pw.Barcode.qrCode(),
-                                                                  data: 'https://elitehotel.com/feedback',
+                                                                  data: 'https://67220be7972e6.site123.me',
                                                                   width: 80,
                                                                   height: 80,
-                                                                ),
-                                                                pw.SizedBox(height: 10),
-                                                                pw.Text('Hotel Contact: 123-456-7890',
-                                                                    style:
-                                                                    pw.TextStyle(fontSize: 12)),
-                                                                pw.SizedBox(height: 6),
-                                                                pw.Text(
-                                                                    'Address: 123 Elite St, Luxury City',
-                                                                    style:
-                                                                    pw.TextStyle(fontSize: 12)),
-                                                                pw.SizedBox(height: 20),
-                                                                pw.Text(
-                                                                    'Signature: ____________________',
-                                                                    style:
-                                                                    pw.TextStyle(fontSize: 12)),
-                                                              ],
-                                                            ),
+                                                                )
+                                                              ]
+                                                            )
+                                                           ,padding:  pw.EdgeInsets.fromLTRB(0, 0, 10, 0),),
+
+                                                            pw.SizedBox(height: 10),
 
                                                           ],
                                                         ),
@@ -757,8 +819,8 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                     Icons.print,
                                     color: Colors.black,
                                   ),
-                                  label: const Text(
-                                    'Print Invoice',
+                                  label:  Text(
+                                    S.current.printInvoice,
                                     style: TextStyle(color: Colors.black),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -881,20 +943,6 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                             ],
                                                           ),
                                                         ),
-                                                        pw.RichText(
-                                                          text: pw.TextSpan(
-                                                            children: [
-                                                              pw.TextSpan(
-                                                                text: 'Invoice Number: ',
-                                                                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-                                                              ),
-                                                              pw.TextSpan(
-                                                                text: '${widget.invoiceNumber}',
-                                                                style: pw.TextStyle(fontSize: 14),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
                                                         pw.SizedBox(height: 6),
                                                         pw.RichText(
                                                           text: pw.TextSpan(
@@ -1088,21 +1136,21 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${nightlyRate.toStringAsFixed(2)}'), // Price
+                                                                      '${nightlyRate.toStringAsFixed(2)}'), // Price
                                                                 ),
                                                                 pw.Padding(
                                                                   padding:
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${widget.totalCost.toStringAsFixed(2)}'), // Total
+                                                                      '${widget.totalCost.toStringAsFixed(2)}'), // Total
                                                                 ),
                                                                 pw.Padding(
                                                                   padding:
                                                                   const pw.EdgeInsets.all(
                                                                       8.0),
                                                                   child: pw.Text(
-                                                                      '\$${widget.remainingBalance.toStringAsFixed(2)}',
+                                                                      '${widget.remainingBalance.toStringAsFixed(2)}',
                                                                       style: pw.TextStyle(
                                                                           color: PdfColors
                                                                               .black)), // Remaining

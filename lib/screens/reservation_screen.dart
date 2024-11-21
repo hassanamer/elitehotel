@@ -26,12 +26,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
       TextEditingController(); // Notes controller
   String?
       _selectedPaymentMethod; // Variable to hold the selected payment method
-  final List<String> _paymentMethods = [
-    S.current.cash,
-    S.current.bank,
-    S.current.visa,
-    S.current.instapay
-  ]; // List of payment methods
+  final Map<String, String> _paymentMethodsMap = {
+    S.current.cash: 'Cash',
+    S.current.bank: 'Bank',
+    S.current.visa: 'Visa',
+    S.current.instapay: 'Instapay',
+  }; // List of payment methods
 
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
@@ -191,7 +191,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   void _createReservation() async {
     creationDate = DateTime.now(); // Initialize creationDate here
-
+    String? englishPaymentMethod = _paymentMethodsMap[_selectedPaymentMethod];
     if (!_validateInputs() ||
         _assignedRoomNumber == null ||
         _selectedRoomType == null) {
@@ -213,7 +213,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
         // Retry to get a unique ID if duplicate is found
         newReservationId = Random().nextInt(900000) + 100000;
       }
+      String englishStatus = _noteFrequency == S.current.justOnce ? 'Just Once' : 'Daily';
 
+      // Calculate total nights
+      int totalNights = _checkOutDate!.difference(_checkInDate!).inDays;
       // Create reservation document with additional guest details
       await FirebaseFirestore.instance
           .collection('reservations')
@@ -235,11 +238,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'amountPaid': double.tryParse(_amountPaidController.text) ?? 0.0,
         'totalCost': _totalCost,
         'remainingBalance': _remainingBalance,
-        'paymentMethod': _selectedPaymentMethod,
+        'paymentMethod': englishPaymentMethod,
         'notes': {
           'text': _notesController.text,
-          'frequency': _noteFrequency,
-          'status': S.current.pending,
+          'frequency': englishStatus,
+          'status': 'Pending',
         },
         'creationDate': creationDate,
       });
@@ -247,20 +250,19 @@ class _ReservationScreenState extends State<ReservationScreen> {
 // Add notes to a separate 'notes' collection with check-in and check-out dates
       await FirebaseFirestore.instance
           .collection('notes')
-          .doc(newReservationId.toString()) // Set the document ID to reservationId
+          .doc(newReservationId
+              .toString()) // Set the document ID to reservationId
           .set({
         'reservationId': newReservationId,
         'guestName': _guestNameController.text,
         'text': _notesController.text,
-        'frequency': _noteFrequency,
-        'room':_assignedRoomNumber,
-        'status': S.current.pending,
+        'frequency': englishStatus,
+        'room': _assignedRoomNumber,
+        'status': 'Pending',
         'checkInDate': _checkInDate,
         'checkOutDate': _checkOutDate,
         'creationDate': creationDate,
       });
-
-
 
       // Update room status and assign current guest
       await FirebaseFirestore.instance
@@ -281,6 +283,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => InvoiceScreen(
+            totalNights: totalNights,
             paymentMethod: _selectedPaymentMethod,
             invoiceNumber: newReservationId,
             guestName: _guestNameController.text,
@@ -334,6 +337,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<String> _localizedPaymentMethods =
+        _paymentMethodsMap.keys.toList();
+
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
@@ -528,7 +534,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: _selectedPaymentMethod,
-                      items: _paymentMethods.map((method) {
+                      items: _localizedPaymentMethods.map((method) {
                         return DropdownMenuItem(
                           value: method,
                           child: Text(method),
@@ -536,13 +542,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       }).toList(),
                       decoration: InputDecoration(
                         labelText: S.current.paymenMethod,
-                        // Add localization if needed
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (value) {
                         setState(() {
-                          _selectedPaymentMethod =
-                              value; // Update selected payment method
+                          _selectedPaymentMethod = value;
                         });
                       },
                     ),
@@ -665,6 +669,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13))),
                               DataColumn(
+                                  label: Text(
+                                      'Nights', // New column for total nights
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13))),
+                              DataColumn(
                                   label: Text(S.current.totalCost,
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
@@ -698,6 +708,13 @@ class _ReservationScreenState extends State<ReservationScreen> {
                               ),
                             ],
                             rows: reservations.map((reservation) {
+                              int totalNights = (reservation['checkOutDate']
+                                      as Timestamp)
+                                  .toDate()
+                                  .difference(
+                                      (reservation['checkInDate'] as Timestamp)
+                                          .toDate())
+                                  .inDays;
                               return DataRow(
                                 cells: [
                                   DataCell(Text(
@@ -721,10 +738,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                                 as Timestamp)
                                             .toDate()),
                                   )),
+                                  DataCell(Center(
+                                      child: Text(totalNights.toString()))),
+                                  // Display total nights
+
                                   DataCell(Text(
-                                      '\$${reservation['totalCost'].toString()}')),
+                                      '${reservation['totalCost'].toString()}')),
+
                                   DataCell(Text(
-                                    '\$${reservation['remainingBalance'].toString()}',
+                                    '${reservation['remainingBalance'].toString()}',
                                     style: TextStyle(color: Colors.red),
                                   )),
                                   DataCell(Text(
@@ -737,8 +759,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => InvoiceScreen(
-                                              guestNumber: reservation['mobileNumber'],
-
+                                              guestNumber:
+                                                  reservation['mobileNumber'],
+                                              totalNights: totalNights,
                                               paymentMethod:
                                                   reservation['paymentMethod'],
                                               reservationId:
@@ -1019,7 +1042,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: _selectedPaymentMethod,
-                      items: _paymentMethods.map((method) {
+                      items: _localizedPaymentMethods.map((method) {
                         return DropdownMenuItem(
                           value: method,
                           child: Text(method),
@@ -1027,13 +1050,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       }).toList(),
                       decoration: InputDecoration(
                         labelText: S.current.paymenMethod,
-                        // Add localization if needed
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (value) {
                         setState(() {
-                          _selectedPaymentMethod =
-                              value; // Update selected payment method
+                          _selectedPaymentMethod = value;
                         });
                       },
                     ),
@@ -1149,6 +1170,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold))),
                                   DataColumn(
+                                      label: Text(
+                                          'Nights', // New column for total nights
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13))),
+                                  DataColumn(
                                       label: Text(S.current.totalCost,
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold))),
@@ -1185,6 +1212,13 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                   ),
                                 ],
                                 rows: reservations.map((reservation) {
+                                  int totalNights = (reservation['checkOutDate']
+                                          as Timestamp)
+                                      .toDate()
+                                      .difference((reservation['checkInDate']
+                                              as Timestamp)
+                                          .toDate())
+                                      .inDays;
                                   return DataRow(
                                     cells: [
                                       DataCell(Text(reservation['reservationId']
@@ -1208,6 +1242,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                                     as Timestamp)
                                                 .toDate()),
                                       )),
+                                      DataCell(Center(
+                                          child: Text(totalNights.toString()))),
+                                      // Display total nights
+
                                       DataCell(Text(
                                           '\$${reservation['totalCost'].toString()}')),
                                       DataCell(Text(
@@ -1227,9 +1265,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     InvoiceScreen(
-                                                      guestNumber: reservation['mobileNumber'],
-
-                                                      paymentMethod: reservation[
+                                                  guestNumber: reservation[
+                                                      'mobileNumber'],
+                                                  totalNights: totalNights,
+                                                  paymentMethod: reservation[
                                                       'paymentMethod'],
                                                   reservationId: reservation[
                                                       'reservationId'],

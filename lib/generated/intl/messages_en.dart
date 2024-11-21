@@ -155,6 +155,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "guestRequest": MessageLookupByLibrary.simpleMessage("Guest Request"),
         "guestRequests": MessageLookupByLibrary.simpleMessage("Guest Requests"),
         "guests": MessageLookupByLibrary.simpleMessage("Guests"),
+        "hKattendancehis":
+            MessageLookupByLibrary.simpleMessage("HK Attendance His.."),
         "hello": m6,
         "home": MessageLookupByLibrary.simpleMessage("Home"),
         "homeTitle": MessageLookupByLibrary.simpleMessage("Elite Hotel"),
@@ -198,6 +200,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "miniSuite": MessageLookupByLibrary.simpleMessage("Mini Suite"),
         "minibar": MessageLookupByLibrary.simpleMessage("Mini-bar"),
         "mobileNumber": MessageLookupByLibrary.simpleMessage("Mobile Number"),
+        "monthlypaymentmethods":
+            MessageLookupByLibrary.simpleMessage("Month\'s Payment Methods"),
         "monthreservations":
             MessageLookupByLibrary.simpleMessage("Month\'s Reservations:"),
         "name": MessageLookupByLibrary.simpleMessage("Name"),
@@ -205,6 +209,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "nationality": MessageLookupByLibrary.simpleMessage("Nationality"),
         "newUser": MessageLookupByLibrary.simpleMessage("New User"),
         "nightPrice": MessageLookupByLibrary.simpleMessage("Night Price"),
+        "nights": MessageLookupByLibrary.simpleMessage("Nights"),
         "noAccess": MessageLookupByLibrary.simpleMessage(
             "You do not have access to this page"),
         "noAvailablerooms": MessageLookupByLibrary.simpleMessage(
@@ -242,6 +247,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "package": MessageLookupByLibrary.simpleMessage("Package"),
         "password": MessageLookupByLibrary.simpleMessage("Password"),
         "paymenMethod": MessageLookupByLibrary.simpleMessage("Payment Method"),
+        "paymentmethods":
+            MessageLookupByLibrary.simpleMessage("Payment Methods"),
         "pending": MessageLookupByLibrary.simpleMessage("Pending"),
         "pleaseCheckinDate": MessageLookupByLibrary.simpleMessage(
             "Please select a check-in date."),
@@ -282,6 +289,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "roomStatus": MessageLookupByLibrary.simpleMessage("Room Status"),
         "roomType": MessageLookupByLibrary.simpleMessage("Room Type"),
         "rooms": MessageLookupByLibrary.simpleMessage("Rooms"),
+        "savechanges": MessageLookupByLibrary.simpleMessage("Save Changes"),
         "searchBy":
             MessageLookupByLibrary.simpleMessage("Search by name, ID, or room"),
         "searchByPackage":
@@ -337,6 +345,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Today\'s\nCheck-outs"),
         "todaysCheckOutsMobile":
             MessageLookupByLibrary.simpleMessage("Today\'s Check-outs"),
+        "todayspaymentmethods":
+            MessageLookupByLibrary.simpleMessage("Today\'s Payment Methods"),
         "totalAmount": MessageLookupByLibrary.simpleMessage("Total Amount"),
         "totalAvailableRooms":
             MessageLookupByLibrary.simpleMessage("Total\nAvailable Rooms"),
@@ -351,6 +361,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Total\nOccupied Rooms"),
         "totalOccupiedRoomsMobile":
             MessageLookupByLibrary.simpleMessage("Total Occupied Rooms"),
+        "totalnights": MessageLookupByLibrary.simpleMessage("Total Nights"),
         "tv": MessageLookupByLibrary.simpleMessage("TV"),
         "unknown": MessageLookupByLibrary.simpleMessage("Unknown"),
         "upcoming": MessageLookupByLibrary.simpleMessage("Upcoming"),

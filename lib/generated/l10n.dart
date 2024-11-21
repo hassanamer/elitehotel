@@ -320,11 +320,81 @@ class S {
     );
   }
 
+  /// `HK Attendance His..`
+  String get hKattendancehis {
+    return Intl.message(
+      'HK Attendance His..',
+      name: 'hKattendancehis',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Payment Methods`
+  String get paymentmethods {
+    return Intl.message(
+      'Payment Methods',
+      name: 'paymentmethods',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Today's Payment Methods`
+  String get todayspaymentmethods {
+    return Intl.message(
+      'Today\'s Payment Methods',
+      name: 'todayspaymentmethods',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Month's Payment Methods`
+  String get monthlypaymentmethods {
+    return Intl.message(
+      'Month\'s Payment Methods',
+      name: 'monthlypaymentmethods',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Please login to continue`
   String get loginPrompt {
     return Intl.message(
       'Please login to continue',
       name: 'loginPrompt',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Total Nights`
+  String get totalnights {
+    return Intl.message(
+      'Total Nights',
+      name: 'totalnights',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nights`
+  String get nights {
+    return Intl.message(
+      'Nights',
+      name: 'nights',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Save Changes`
+  String get savechanges {
+    return Intl.message(
+      'Save Changes',
+      name: 'savechanges',
       desc: '',
       args: [],
     );
