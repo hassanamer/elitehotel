@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -81,18 +82,17 @@ class _HKScreenState extends State<HKScreen> {
       body: PageView(
         controller: _pageController,
         children: [
-          if (userAccountType == 'HK Staff')
-            AttendancePage(hkUserId: hkUserId),
-          RoomsPage(),
-          RequestsPage(),
+          if (userAccountType == 'HK Staff') AttendancePage(hkUserId: hkUserId),
+          RoomsPage(userAccountType: userAccountType),
+          RequestsPage(userAccountType: userAccountType),
           AssignedNotesPage(),
           FrontDeskRequestsPage(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Color(0xFFDBB017),
+        selectedItemColor: Color(0xFFDBB017),selectedFontSize: 16,selectedLabelStyle:TextStyle(fontSize: 16,) ,
         unselectedItemColor: Colors.black,
-        unselectedLabelStyle: TextStyle(color: Colors.black),
+        unselectedLabelStyle: TextStyle(color: Colors.black,fontSize: 16,),
         items: [
           if (userAccountType == 'HK Staff')
             BottomNavigationBarItem(
@@ -151,7 +151,7 @@ class _AttendancePageState extends State<AttendancePage> {
     final today = DateTime.now();
     final startOfDay = DateTime.utc(today.year, today.month, today.day);
     final endOfDay =
-    DateTime.utc(today.year, today.month, today.day, 23, 59, 59);
+        DateTime.utc(today.year, today.month, today.day, 23, 59, 59);
 
     final attendanceSnapshot = await _firestore
         .collection('attendance')
@@ -190,14 +190,14 @@ class _AttendancePageState extends State<AttendancePage> {
         .collection('attendance')
         .where('hkUserId', isEqualTo: widget.hkUserId)
         .where('checkInTime',
-        isGreaterThan: DateTime(today.year, today.month, today.day))
+            isGreaterThan: DateTime(today.year, today.month, today.day))
         .get();
 
     if (attendanceSnapshot.docs.isEmpty) {
       _checkInTime = DateTime.now();
       Position position = await _determinePosition();
       List<Placemark> placemarks =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       String placeName = placemarks.first.locality ?? "Unknown";
 
       setState(() {
@@ -233,7 +233,7 @@ class _AttendancePageState extends State<AttendancePage> {
       _checkOutTime = DateTime.now();
       Position position = await _determinePosition();
       List<Placemark> placemarks =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       String placeName = placemarks.first.locality ?? "Unknown";
 
       if (_checkInTime != null) {
@@ -424,11 +424,59 @@ class _AttendancePageState extends State<AttendancePage> {
 class RoomsPage extends StatelessWidget {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String? userAccountType; // Add this line to pass the userAccountType
+  String _localizeRoomType(String roomType, Locale locale) {
+    if (locale.languageCode == 'ar') {
+      switch (roomType) {
+        case 'Room':
+          return 'غرفة';
+        case 'Suite':
+          return 'جناح';
+        case 'Mini Suite':
+          return 'ميني جناح';
+        default:
+          return roomType;
+      }
+    }
+    return roomType;
+  }
 
-  RoomsPage({this.userAccountType}); // Modify the constructor to accept userAccountType
+  String convertNumberToArabic(String number) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.replaceAllMapped(RegExp(r'\d'), (match) {
+      return arabicDigits[int.parse(match.group(0)!)];
+    });
+  }
+  // Method to localize cleaning status
+  String _localizeCleaningStatus(String status, Locale locale) {
+    if (locale.languageCode == 'ar') {
+      switch (status) {
+        case 'Dirty':
+          return 'متسخ';
+        case 'Clean':
+          return 'نظيف';
+        default:
+          return status;
+      }
+    }
+    return status;
+  }
+
+  String getLocalizedNumber(String number) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      return convertNumberToArabic(number);
+    }
+    return number;
+  }
+
+
+
+  RoomsPage(
+      {this.userAccountType}); // Modify the constructor to accept userAccountType
 
   @override
   Widget build(BuildContext context) {
+    Locale locale = Localizations.localeOf(context);
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('rooms')
@@ -449,7 +497,13 @@ class RoomsPage extends StatelessWidget {
           children: snapshot.data!.docs.map((roomDoc) {
             String roomId = roomDoc.id;
             String roomNumber = roomDoc['roomNumber'];
+            String roomType = roomDoc['roomType'];
             String cleaningStatus = roomDoc['cleaningStatus'];
+            String localizedRoomType = _localizeRoomType(roomType, locale);
+            // Use the new method to localize the room number
+            String localizedRoomNumber = getLocalizedNumber(roomNumber);
+            String localizedCleaningStatus = _localizeCleaningStatus(cleaningStatus, locale);
+
             return Card(
               margin: EdgeInsets.all(8),
               child: ListTile(
@@ -457,14 +511,14 @@ class RoomsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Room: $roomNumber',
+                      '$localizedRoomType:  $localizedRoomNumber',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
                     ),
                     Text(
-                      cleaningStatus,
+                      localizedCleaningStatus,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -477,16 +531,18 @@ class RoomsPage extends StatelessWidget {
                 ),
                 trailing: userAccountType == 'HK Staff'
                     ? CircleAvatar(
-                  backgroundColor:
-                  cleaningStatus == 'Clean' ? Colors.green : Colors.red,
-                  child: IconButton(
-                    icon: Icon(Icons.check, color: Colors.white),
-                    onPressed: () {
-                      bool isClean = cleaningStatus == 'Dirty';
-                      _updateRoomStatus(roomId, isClean);
-                    },
-                  ),
-                ) : null,
+                        backgroundColor: cleaningStatus == 'Clean'
+                            ? Colors.green
+                            : Colors.red,
+                        child: IconButton(
+                          icon: Icon(Icons.check, color: Colors.white),
+                          onPressed: () {
+                            bool isClean = cleaningStatus == 'Dirty';
+                            _updateRoomStatus(roomId, isClean);
+                          },
+                        ),
+                      )
+                    : null,
               ),
             );
           }).toList(),
@@ -503,6 +559,10 @@ class RoomsPage extends StatelessWidget {
 }
 
 class RequestsPage extends StatefulWidget {
+  final String? userAccountType;
+
+  RequestsPage({this.userAccountType});
+
   @override
   _RequestsPageState createState() => _RequestsPageState();
 }
@@ -543,18 +603,20 @@ class _RequestsPageState extends State<RequestsPage> {
   }
 
   Timestamp getStartOfDay(DateTime date) {
-    return Timestamp.fromDate(DateTime(date.year, date.month, date.day, 0, 0, 0));
+    return Timestamp.fromDate(
+        DateTime(date.year, date.month, date.day, 0, 0, 0));
   }
 
   Timestamp getEndOfDay(DateTime date) {
-    return Timestamp.fromDate(DateTime(date.year, date.month, date.day, 23, 59, 59));
+    return Timestamp.fromDate(
+        DateTime(date.year, date.month, date.day, 23, 59, 59));
   }
 
   @override
   Widget build(BuildContext context) {
-    return  Column(
+    return Column(
       children: [
-        if (userAccountType == 'HK Staff') // Display only for HK Staff
+        if (widget.userAccountType == 'HK Staff') // Display only for HK Staff
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -583,9 +645,12 @@ class _RequestsPageState extends State<RequestsPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (userAccountType != 'HK Staff') Spacer(),
+            if (widget.userAccountType != 'HK Staff') Spacer(),
             IconButton(
-              icon: Icon(Icons.calendar_today,color: Colors.white,),
+              icon: Icon(
+                Icons.calendar_today,
+                color: Colors.white,
+              ),
               onPressed: _pickDate,
             ),
           ],
@@ -594,8 +659,10 @@ class _RequestsPageState extends State<RequestsPage> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _firestore
                 .collection('requests')
-                .where('timestamp', isGreaterThanOrEqualTo: getStartOfDay(_selectedDate))
-                .where('timestamp', isLessThanOrEqualTo: getEndOfDay(_selectedDate))
+                .where('timestamp',
+                    isGreaterThanOrEqualTo: getStartOfDay(_selectedDate))
+                .where('timestamp',
+                    isLessThanOrEqualTo: getEndOfDay(_selectedDate))
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return CircularProgressIndicator();
@@ -630,35 +697,44 @@ class _RequestsPageState extends State<RequestsPage> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (userAccountType == 'HK Staff')
+                          if (widget.userAccountType == 'HK Staff' ||
+                              widget.userAccountType == 'Front Desk')
                             DropdownButton<String>(
                               value: status,
                               items: [
                                 DropdownMenuItem(
                                   value: 'Pending',
-                                  child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
+                                  child: Text(S.current.pending,
+                                      style: TextStyle(color: Colors.orange)),
                                 ),
                                 DropdownMenuItem(
                                   value: 'In Progress',
-                                  child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
+                                  child: Text(S.current.inProgress,
+                                      style: TextStyle(color: Colors.blue)),
                                 ),
                                 DropdownMenuItem(
                                   value: 'Completed',
-                                  child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
+                                  child: Text(S.current.completed,
+                                      style: TextStyle(color: Colors.green)),
                                 ),
                               ],
                               onChanged: (String? newStatus) async {
                                 if (newStatus != null) {
-                                  await _updateRequestStatus(requestId, newStatus);
+                                  await _updateRequestStatus(
+                                      requestId, newStatus);
                                 }
                               },
                             ),
                           IconButton(
                             icon: Icon(Icons.delete, color: Colors.red),
                             onPressed: () async {
-                              await _firestore.collection('requests').doc(requestId).delete();
+                              await _firestore
+                                  .collection('requests')
+                                  .doc(requestId)
+                                  .delete();
                               setState(() {
-                                snapshot.data!.docs.removeWhere((doc) => doc.id == requestId);
+                                snapshot.data!.docs
+                                    .removeWhere((doc) => doc.id == requestId);
                               });
                             },
                           ),
@@ -685,6 +761,20 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   DateTime _selectedDate = DateTime.now();
   String? userAccountType;
+
+  String convertNumberToArabic(String number) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.replaceAllMapped(RegExp(r'\d'), (match) {
+      return arabicDigits[int.parse(match.group(0)!)];
+    });
+  }
+
+  String getLocalizedNumber(String number) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      return convertNumberToArabic(number);
+    }
+    return number;
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -717,8 +807,10 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
         DateTime checkOutDate =
             (data['checkOutDate'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-        checkInDate = DateTime(checkInDate.year, checkInDate.month, checkInDate.day);
-        checkOutDate = DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
+        checkInDate =
+            DateTime(checkInDate.year, checkInDate.month, checkInDate.day);
+        checkOutDate =
+            DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
 
         return {
           'docId': doc.id, // Include the document ID
@@ -741,7 +833,8 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
             !checkIn.isAfter(selectedDay) && !checkOut.isBefore(selectedDay);
         bool isDailyNote = frequency == 'Daily';
         bool isJustOnceNote = frequency == 'Just Once' &&
-            (selectedDay.isAtSameMomentAs(checkIn) || selectedDay.isAtSameMomentAs(checkOut));
+            (selectedDay.isAtSameMomentAs(checkIn) ||
+                selectedDay.isAtSameMomentAs(checkOut));
 
         return isWithinDateRange && (isJustOnceNote || isDailyNote);
       }).toList();
@@ -752,6 +845,7 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
       return [];
     }
   }
+
   Future<void> _updateNoteStatus(String reservationId, String newStatus) async {
     await _firestore.collection('reservations').doc(reservationId).update({
       'notes.status': newStatus,
@@ -759,7 +853,9 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
   }
 
   String _validateStatus(String? status) {
-    if (status != 'Pending' && status != 'In Progress' && status != 'Completed') {
+    if (status != 'Pending' &&
+        status != 'In Progress' &&
+        status != 'Completed') {
       return 'Pending';
     }
     return status ?? 'Pending';
@@ -799,11 +895,15 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
 
   @override
   Widget build(BuildContext context) {
+    Locale locale = Localizations.localeOf(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFDBB017),
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // Make AppBar background transparent
-        elevation: 0, // Remove default AppBar shadow
+        backgroundColor: Colors.transparent,
+        // Make AppBar background transparent
+        elevation: 0,
+        // Remove default AppBar shadow
         automaticallyImplyLeading: false,
         flexibleSpace: Container(
           padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
@@ -836,14 +936,14 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.date_range, color:const Color(0xFFDBB017)),
+                    Icon(Icons.date_range, color: const Color(0xFFDBB017)),
                     SizedBox(width: 5),
                     Text(
                       '${DateFormat('yyyy - MM - dd').format(_selectedDate)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color:const Color(0xFFDBB017),
+                        color: const Color(0xFFDBB017),
                       ),
                     ),
                   ],
@@ -865,14 +965,13 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
                       ),
                     ],
                   ),
-                  child: Icon(Icons.calendar_today, color: const Color(0xFFDBB017)),
+                  child: Icon(Icons.calendar_today,
+                      color: const Color(0xFFDBB017)),
                 ),
               ),
             ],
           ),
         ),
-
-
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchAssignedNotes(_selectedDate),
@@ -882,86 +981,104 @@ class _AssignedNotesPageState extends State<AssignedNotesPage> {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text(S.current.noassignednotes,style: TextStyle(color: Colors.white),),);
+            return Center(
+              child: Text(
+                S.current.noassignednotes,
+                style: TextStyle(color: Colors.white),
+              ),
+            );
           }
 
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              var note = snapshot.data![index];
-              String? status = note['status'];
-              String docId = note['docId'] ?? '';
+          return SingleChildScrollView(
+            child: ListView.builder(
+              itemCount: snapshot.data!.length,
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                var note = snapshot.data![index];
+                String? status = note['status'];
+                String docId = note['docId'] ?? '';
 
-              status = _validateStatus(status);
-              String localizedStatus = _mapStatusToLocalizedText(status);
-              String frequency = note['frequency'] ?? '';
-              String localizedFrequency = _mapFrequencyToLocalizedText(frequency);
+                status = _validateStatus(status);
+                String localizedStatus = _mapStatusToLocalizedText(status);
+                String frequency = note['frequency'] ?? '';
+                String localizedFrequency =
+                    _mapFrequencyToLocalizedText(frequency);
 
-              return Card(
-                margin: EdgeInsets.all(8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 4,
-                child: ListTile(
-                  title: Text(
-                    '${note['text']}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                String roomNumber = note['room'];
+                // Use the new method to localize the room number
+                String localizedRoomNumber = getLocalizedNumber(roomNumber);
+                return Card(
+                  margin: EdgeInsets.all(8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
-                      vertical: 10.0, horizontal: 16.0),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${S.current.frequency}: $localizedFrequency'),
-                      SizedBox(height: 4),
-                      Text('${S.current.guestNameLabel}: ${note['guestName']}'),
-                      SizedBox(height: 4),
-                      Text('${S.current.room}: ${note['room']}'),
-                      SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('${S.current.status}: $localizedStatus'),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            onPressed: () async {
-                              try {
-                                await _firestore.collection('notes').doc(docId).delete();
-                                setState(() {
-                                  snapshot.data!.removeAt(index);
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Note Deleted')),
-                                );
-                              } catch (e) {
-                                print("Error deleting note: $e");
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(S.current.errorMessage)),
-                                );
-                              }
-                            },
-                          ),
-                          if(userAccountType == 'HK Staff')
-                          DropdownButton<String>(
-                            value: status,
-                            items: _buildStatusDropdownItems(),
-                            onChanged: (String? newStatus) async {
-                              if (newStatus != null && newStatus != status) {
-                                await _updateNoteStatus(docId, newStatus);
-                                setState(() {});
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                  elevation: 4,
+                  child: ListTile(
+                    title: Text(
+                      '${note['text']}',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${S.current.frequency}: $localizedFrequency',style: TextStyle(fontSize: 18,),),
+                        SizedBox(height: 4),
+                        Text(
+                            '${S.current.guestNameLabel}: ${note['guestName']}',style: TextStyle(fontSize: 18,),),
+                        SizedBox(height: 4),
+                        Text('${S.current.room}:$localizedRoomNumber',style: TextStyle(fontSize: 18,),),
+                        SizedBox(height: 2),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${S.current.status}: $localizedStatus',style: TextStyle(fontSize: 18,),),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                try {
+                                  await _firestore
+                                      .collection('notes')
+                                      .doc(docId)
+                                      .delete();
+                                  setState(() {
+                                    snapshot.data!.removeAt(index);
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Note Deleted')),
+                                  );
+                                } catch (e) {
+                                  print("Error deleting note: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(S.current.errorMessage)),
+                                  );
+                                }
+                              },
+                            ),
+                            if (userAccountType == 'HK Staff')
+                              DropdownButton<String>(
+                                value: status,
+                                items: _buildStatusDropdownItems(),
+                                onChanged: (String? newStatus) async {
+                                  if (newStatus != null &&
+                                      newStatus != status) {
+                                    await _updateNoteStatus(docId, newStatus);
+                                    setState(() {});
+                                  }
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
@@ -993,7 +1110,8 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchFrontDeskRequestsForDate(DateTime date) async {
+  Future<List<Map<String, dynamic>>> _fetchFrontDeskRequestsForDate(
+      DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
@@ -1016,14 +1134,15 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFDBB017),
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // Make AppBar background transparent
-        elevation: 0, // Remove default AppBar shadow
+        backgroundColor: Colors.transparent,
+        // Make AppBar background transparent
+        elevation: 0,
+        // Remove default AppBar shadow
         automaticallyImplyLeading: false,
         flexibleSpace: Container(
           padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
@@ -1056,14 +1175,14 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.date_range, color:const Color(0xFFDBB017)),
+                    Icon(Icons.date_range, color: const Color(0xFFDBB017)),
                     SizedBox(width: 5),
                     Text(
                       '${DateFormat('yyyy - MM - dd').format(_selectedDate)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color:const Color(0xFFDBB017),
+                        color: const Color(0xFFDBB017),
                       ),
                     ),
                   ],
@@ -1085,7 +1204,8 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
                       ),
                     ],
                   ),
-                  child: Icon(Icons.calendar_today, color: const Color(0xFFDBB017)),
+                  child: Icon(Icons.calendar_today,
+                      color: const Color(0xFFDBB017)),
                 ),
               ),
             ],
@@ -1102,7 +1222,12 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
                   return Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text(S.current.nofrontdeskrequests,style: TextStyle(color: Colors.white),),);
+                  return Center(
+                    child: Text(
+                      S.current.nofrontdeskrequests,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  );
                 }
                 return ListView.builder(
                   itemCount: snapshot.data!.length,
@@ -1131,7 +1256,8 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
                       child: ListTile(
                         title: Text(
                           '${request['requestDetail']}',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,34 +1265,42 @@ class _FrontDeskRequestsPageState extends State<FrontDeskRequestsPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('${S.current.status}: $localizedStatus'),
-                               if(userAccountType == 'HK Staff')
-                                DropdownButton<String>(
-                                  value: status,
-                                  items: [
-                                    DropdownMenuItem(
-                                      value: 'Pending',
-                                      child: Text(S.current.pending, style: TextStyle(color: Colors.orange)),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'In Progress',
-                                      child: Text(S.current.inProgress, style: TextStyle(color: Colors.blue)),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'Completed',
-                                      child: Text(S.current.completed, style: TextStyle(color: Colors.green)),
-                                    ),
-                                  ],
-                                  onChanged: (String? newStatus) async {
-                                    if (newStatus != null && newStatus != status && docId.isNotEmpty) {
-                                      await _firestore
-                                          .collection('frontdeskRequest')
-                                          .doc(docId)
-                                          .update({'status': newStatus});
-                                      setState(() {});
-                                    }
-                                  },
-                                ),
+                                Text('${S.current.status}: $localizedStatus',style: TextStyle(fontSize: 18,),),
+                                if (userAccountType == 'HK Staff')
+                                  DropdownButton<String>(
+                                    value: status,
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'Pending',
+                                        child: Text(S.current.pending,
+                                            style: TextStyle(
+                                                color: Colors.orange)),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'In Progress',
+                                        child: Text(S.current.inProgress,
+                                            style:
+                                                TextStyle(color: Colors.blue)),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Completed',
+                                        child: Text(S.current.completed,
+                                            style:
+                                                TextStyle(color: Colors.green)),
+                                      ),
+                                    ],
+                                    onChanged: (String? newStatus) async {
+                                      if (newStatus != null &&
+                                          newStatus != status &&
+                                          docId.isNotEmpty) {
+                                        await _firestore
+                                            .collection('frontdeskRequest')
+                                            .doc(docId)
+                                            .update({'status': newStatus});
+                                        setState(() {});
+                                      }
+                                    },
+                                  ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {

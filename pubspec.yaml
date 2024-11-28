@@ -90,6 +90,8 @@ flutter:
   assets:
     - assets/elite.jpg
     - assets/elitee.png
+    - assets/location.png
+    - assets/contact.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
@@ -114,5 +116,10 @@ flutter:
           weight: 800
         - asset: assets/helvetica-light.ttf
           weight: 800
+    - family: Arabic
+      fonts:
+        - asset: assets/Arabic.ttf
+          weight: 800
+
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages

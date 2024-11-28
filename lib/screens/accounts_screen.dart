@@ -37,6 +37,18 @@ class _AccountsScreenState extends State<AccountsScreen> {
       print('isAdmin: $isAdmin');  // Debugging
     }
   }
+  Future<void> _deleteUser(String userId) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete user: $e')),
+      );
+    }
+  }
 
   Future<void> _updateAccountType(String userId, String newRole) async {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -165,90 +177,95 @@ class _AccountsScreenState extends State<AccountsScreen> {
         backgroundColor: const Color(0xFFDBB017),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return const Center(child: Text('No accounts found'));
-            }
-            return ListView(
-              children: snapshot.data!.docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                final userId = doc.id;
-                String currentRole = (data['accountType'] ?? 'Front Desk').toLowerCase();
+          padding: const EdgeInsets.all(12.0),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('users').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('No accounts found'));
+              }
+              return ListView(
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final userId = doc.id;
+                  String currentRole = (data['accountType'] ?? 'Front Desk').toLowerCase();
 
-                // Ensure currentRole matches one of the dropdown items
-                if (roleOptions.map((role) => role.toLowerCase()).contains(currentRole)) {
-                  currentRole = roleOptions.firstWhere((role) => role.toLowerCase() == currentRole);
-                } else {
-                  currentRole = 'Front Desk'; // Fallback to default role if mismatch
-                }
+                  // Ensure currentRole matches one of the dropdown items
+                  if (roleOptions.map((role) => role.toLowerCase()).contains(currentRole)) {
+                    currentRole = roleOptions.firstWhere((role) => role.toLowerCase() == currentRole);
+                  } else {
+                    currentRole = 'Front Desk'; // Fallback to default role if mismatch
+                  }
 
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16.0),
-                    title: Text(
-                      data['name'] ?? 'No Name',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16.0),
+                      title: Text(
+                        data['name'] ?? 'No Name',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                data['email'] ?? 'No Email',
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                              Row(
+                                children: [
+                                  DropdownButton<String>(
+                                    value: currentRole,
+                                    items: roleOptions.map((role) {
+                                      return DropdownMenuItem(
+                                        value: role,
+                                        child: Text(role),
+                                      );
+                                    }).toList(),
+                                    onChanged: isAdmin
+                                        ? (newRole) {
+                                      if (newRole != null && newRole != currentRole) {
+                                        _updateAccountType(userId, newRole);
+                                      }
+                                    }
+                                        : null,
+                                    disabledHint: Text(
+                                      currentRole,
+                                      style: TextStyle(color: Colors.grey[700]),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: isAdmin
+                                        ? () => _deleteUser(userId)
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                        ],
                       ),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              data['email'] ?? 'No Email',
-                              style: TextStyle(color: Colors.grey[700]),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end, // Align the dropdown to the end
-                              children: [
-                                DropdownButton<String>(
-                                  value: currentRole,
-                                  items: roleOptions.map((role) {
-                                    return DropdownMenuItem(
-                                      value: role,
-                                      child: Text(role),
-                                    );
-                                  }).toList(),
-                                  onChanged: isAdmin
-                                      ? (newRole) {
-                                    if (newRole != null && newRole != currentRole) {
-                                      _updateAccountType(userId, newRole);
-                                    }
-                                  }
-                                      : null,
-                                  disabledHint: Text(
-                                    currentRole,
-                                    style: TextStyle(color: Colors.grey[700]),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        )
+                  );
+                }).toList(),
+              );
+            },
+          )
 
       ),
       floatingActionButton: isAdmin

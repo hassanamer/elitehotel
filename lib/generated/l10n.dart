@@ -530,6 +530,26 @@ class S {
     );
   }
 
+  /// `Reservation Details`
+  String get reservationDetails {
+    return Intl.message(
+      'Reservation Details',
+      name: 'reservationDetails',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `More`
+  String get more {
+    return Intl.message(
+      'More',
+      name: 'more',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Floor`
   String get floor {
     return Intl.message(
@@ -700,11 +720,31 @@ class S {
     );
   }
 
-  /// `Reservations Amount'`
+  /// `Reservations Amount`
   String get reservationsamount {
     return Intl.message(
-      'Reservations Amount\'',
+      'Reservations Amount',
       name: 'reservationsamount',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Reservations List`
+  String get reservationslist {
+    return Intl.message(
+      'Reservations List',
+      name: 'reservationslist',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Guest Details`
+  String get guestdetails {
+    return Intl.message(
+      'Guest Details',
+      name: 'guestdetails',
       desc: '',
       args: [],
     );

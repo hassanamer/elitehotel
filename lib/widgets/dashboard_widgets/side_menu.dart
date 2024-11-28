@@ -25,9 +25,10 @@ class SideMenu extends StatelessWidget {
               if (visiblePages.contains(4)) _buildMenuItem(Icons.room, S.current.rooms, 4),
               if (visiblePages.contains(5)) _buildMenuItem(Icons.rate_review, S.current.rates, 5),
               if (visiblePages.contains(6)) _buildMenuItem(Icons.book, S.current.reservations, 6),
-              if (visiblePages.contains(7)) _buildMenuItem(Icons.settings, S.current.settings, 7),
-              if (visiblePages.contains(7)) _buildMenuItem(Icons.manage_accounts_outlined, S.current.accounts, 8),
-              if (visiblePages.contains(9)) _buildMenuItem(Icons.history, S.current.hKattendancehis, 9), // New menu item
+              if (visiblePages.contains(6)) _buildMenuItem(Icons.book, S.current.reservationslist, 7),
+              if (visiblePages.contains(7)) _buildMenuItem(Icons.settings, S.current.settings, 8),
+              if (visiblePages.contains(7)) _buildMenuItem(Icons.manage_accounts_outlined, S.current.accounts, 9),
+              if (visiblePages.contains(9)) _buildMenuItem(Icons.history, S.current.hKattendancehis, 10), // New menu item
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color:  Color(0xFFDBB017)),

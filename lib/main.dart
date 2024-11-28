@@ -13,6 +13,7 @@ import 'package:elitehotel/screens/hk_screen.dart';
 import 'package:elitehotel/screens/login_screen.dart';
 import 'package:elitehotel/screens/rates_screen.dart';
 import 'package:elitehotel/screens/reservation_screen.dart';
+import 'package:elitehotel/screens/reservationslist.dart';
 import 'package:elitehotel/screens/rooms_screen.dart';
 import 'package:elitehotel/screens/settings_screen.dart';
 import 'package:elitehotel/screens/signup_screen.dart';
@@ -150,6 +151,7 @@ class _MyAppState extends State<MyApp> {
         '/rooms': (context) => RoomsScreen(),
         '/rates': (context) => RatesScreen(),
         '/reservations': (context) => ReservationScreen(),
+        '/reservationslist': (context) => ReservationListScreen(),
         '/settings': (context) => SettingsScreen(),
         '/accounts': (context) => AccountsScreen(),
       },
@@ -248,6 +250,7 @@ class _MainScreenState extends State<MainScreen> {
           RoomsScreen(),
           RatesScreen(),
           ReservationScreen(),
+          ReservationListScreen(),
           SettingsScreen(),
           AccountsScreen(),
           HKAttendanceHistoryPage(), // Add the new page
@@ -260,6 +263,7 @@ class _MainScreenState extends State<MainScreen> {
           RoomsScreen(),
           RatesScreen(),
           ReservationScreen(),
+          ReservationListScreen(),
           SettingsScreen(),
         ];
       case 'HK Staff':
@@ -273,9 +277,9 @@ class _MainScreenState extends State<MainScreen> {
     switch (role) {
       case 'Admin':
       case 'Manager':
-        return List.generate(10, (index) => index);
+        return List.generate(11, (index) => index);
       case 'Front Desk':
-        return List.generate(7, (index) => index + 1);
+        return List.generate(8, (index) => index + 1);
       case 'HK Staff':
         return [2];
       default:
@@ -298,7 +302,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           const Icon(Icons.hotel, color: Color(0xFFDBB017)),
           const SizedBox(width: 8),
-          Text(S.current.appTitle, style: const TextStyle(color: Color(0xFFDBB017),),),
+          Text(S.current.appTitle, style: const TextStyle(color: Color(0xFFDBB017), fontFamily: 'Amiri',fontSize: 25),),
         ],
       ),
       backgroundColor: Colors.white,

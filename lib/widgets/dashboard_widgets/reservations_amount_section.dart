@@ -144,7 +144,7 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
             Expanded(
               flex: 1,
               child: Text(
-                '\$${amount.toStringAsFixed(2)}',
+                '${amount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

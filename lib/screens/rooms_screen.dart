@@ -3,6 +3,40 @@ import 'package:elitehotel/generated/l10n.dart';
 import 'package:elitehotel/widgets/rooms_widgets/add_room_dialouge.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+String convertNumberToArabic(String number) {
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return number.replaceAllMapped(RegExp(r'\d'), (match) {
+    return arabicDigits[int.parse(match.group(0)!)];
+  });
+}
+
+String getLocalizedNumber(String number) {
+  if (Intl.getCurrentLocale() == 'ar') {
+    return convertNumberToArabic(number);
+  }
+  return number;
+}
+
+  String getLocalizedText(String text) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      const textDictionary = {
+        'Single': 'فردي',
+        'Double': 'مزدوج',
+        'Suite': 'جناح',
+        'Mini Suite': 'ميني جناح',
+        'Room': 'غرفة',
+        'Available': 'متاح',
+        'Occupied': 'مشغول',
+        'Dirty': 'متسخ',
+        'Clean': 'نظيف',
+        // Add more translations as needed
+      };
+      return textDictionary[text] ?? text;
+    }
+    return text;
+  }
+
 
 class RoomsScreen extends StatefulWidget {
   @override
@@ -14,6 +48,27 @@ class _RoomsScreenState extends State<RoomsScreen> {
   TextEditingController searchController = TextEditingController();
   String? userAccountType;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final statusOptions = {
+    'All': S.current.all,
+    'Available': S.current.available,
+    'Occupied': S.current.occupied,
+    'Dirty': S.current.dirty,
+    'Clean': S.current.clean,
+  };
+
+  String getLocalizedFacility(String facility) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      const facilityDictionary = {
+        'WiFi': 'واي فاي',
+        'TV': 'تلفاز',
+        'Mini-bar': 'ميني بار',
+        'AC': 'مكيف',
+        'Fridge': 'ثلاجة',
+      };
+      return facilityDictionary[facility] ?? facility;
+    }
+    return facility;
+  }
 
   @override
   void initState() {
@@ -67,7 +122,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
         automaticallyImplyLeading: false,
         title: Text(
           S.current.roomManagement,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Amiri',),
         ),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
@@ -134,8 +189,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
             controller: searchController,
             decoration: InputDecoration(
               labelText: S.current.searchBy,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
               prefixIcon: const Icon(Icons.search),
             ),
             onChanged: (value) {
@@ -148,17 +202,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
           flex: 1,
           child: DropdownButtonFormField<String>(
             value: selectedStatus,
-            items: [
-              'All',
-              S.current.available,
-              S.current.occupied,
-              S.current.statusMaintenance,
-              S.current.dirty,
-              S.current.clean
-            ]
-                .map((status) =>
-                    DropdownMenuItem(value: status, child: Text(status)))
-                .toList(),
+            items: statusOptions.keys.map((key) {
+              return DropdownMenuItem<String>(
+                value: key,
+                child: Text(statusOptions[key]!),
+              );
+            }).toList(),
             onChanged: (value) {
               setState(() {
                 selectedStatus = value!;
@@ -166,14 +215,14 @@ class _RoomsScreenState extends State<RoomsScreen> {
             },
             decoration: InputDecoration(
               labelText: S.current.filterByStatus,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
             ),
           ),
         ),
       ],
     );
   }
+
 
   // Build the room data table with scrollable functionality
   Widget _buildRoomDataTable() {
@@ -280,81 +329,80 @@ class _RoomsScreenState extends State<RoomsScreen> {
     return [
       DataColumn(
           label: Text(S.current.roomNumber,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.bedType,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.roomType,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.roomFloor,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.facilities,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.status,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.cleaningStatus,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
       DataColumn(
           label: Text(S.current.currentGuest,
-              style: TextStyle(fontWeight: FontWeight.bold))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
     ];
   }
 
   // Table row data based on room and facilities
   List<DataCell> _buildTableCells(
       Map<String, dynamic> room, String facilities) {
+    String localizedFacilities = facilities.split(', ').map((facility) {
+      return getLocalizedFacility(facility);
+    }).join(', ');
+    String noGuestText = Intl.getCurrentLocale() == 'ar' ? 'لا يوجد' : 'None';
+
     return [
-      DataCell(Text(room['roomNumber'])),
-      DataCell(Text(room['bedType'])),
-      DataCell(Text(room['roomType'])),
-      DataCell(Text(room['roomFloor'].toString())),
-      DataCell(Text(facilities.isNotEmpty ? facilities : 'None')),
+      DataCell(Text(getLocalizedNumber(room['roomNumber']),style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(getLocalizedText(room['bedType']),style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(getLocalizedText(room['roomType']),style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(getLocalizedNumber(room['roomFloor'].toString()),style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(localizedFacilities.isNotEmpty ? localizedFacilities : noGuestText,style: TextStyle(fontSize: 16,),)),
       DataCell(
         Text(
-          room['status'],
+          getLocalizedText(room['status']),
           style: TextStyle(
             color: room['status'] == 'Available' ? Colors.green : Colors.red,
             fontWeight: FontWeight.w600,
+            fontSize: 16,
           ),
         ),
       ),
-      DataCell(Text(room['cleaningStatus'] ?? 'N/A')),
-      DataCell(Text(room['currentGuest'] ?? 'None')),
+      DataCell(Text(getLocalizedText(room['cleaningStatus'] ?? 'N/A'),style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(room['currentGuest'] ?? 'None',style: TextStyle(fontSize: 16,),),),
     ];
   }
 
   List<Map<String, dynamic>> _filterRooms(List<Map<String, dynamic>> rooms,
       List<Map<String, dynamic>> reservations) {
     DateTime now = DateTime.now();
-
     // Mark each room based on active reservations
     for (var room in rooms) {
       bool isOccupied = false;
-      DateTime? lastCheckOutAt1PM; // Declare a variable to store the last checkout time
-
-
+      DateTime? lastCheckOutAt1PM;
       for (var reservation in reservations) {
         DateTime checkInDate =
-            (reservation['checkInDate'] as Timestamp).toDate();
+        (reservation['checkInDate'] as Timestamp).toDate();
         DateTime checkOutDate =
-            (reservation['checkOutDate'] as Timestamp).toDate();
-
-        // Set check-out time to 1 PM
+        (reservation['checkOutDate'] as Timestamp).toDate();
         DateTime checkOutAt1PM = DateTime(
           checkOutDate.year,
           checkOutDate.month,
           checkOutDate.day,
-          13, // 1 PM (13:00)
-          0, // 0 minutes
-          0, // 0 seconds
+          13,
+          0,
+          0,
         );
-
-        // Check if room has an active reservation for today
         if (reservation['roomNumber'] == room['roomNumber'] &&
             now.isAfter(checkInDate) &&
             now.isBefore(checkOutAt1PM)) {
@@ -362,28 +410,23 @@ class _RoomsScreenState extends State<RoomsScreen> {
           isOccupied = true;
           break;
         }
-        // Update the last checkout time
         lastCheckOutAt1PM = checkOutAt1PM;
       }
-
-      // Set room to 'Available' if no active reservation for today
       if (!isOccupied) {
         room['status'] = 'Available';
-        room['currentGuest'] = 'None'; // Clear the current guest name
-
-
+        room['currentGuest'] = 'None';
         if (lastCheckOutAt1PM != null && now.isAfter(lastCheckOutAt1PM)) {
           room['cleaningStatus'] = 'Dirty';
         }
       }
     }
-
     return rooms.where((room) {
-      // Filter rooms by status if not 'All'
-      if (selectedStatus != 'All' && room['status'] != selectedStatus) {
+      // Filter rooms by status or cleaning status if not 'All'
+      if (selectedStatus != 'All' &&
+          room['status'] != selectedStatus &&
+          room['cleaningStatus'] != selectedStatus) {
         return false;
       }
-
       // Filter rooms by search keyword (room number, bed type, or floor)
       String searchText = searchController.text.toLowerCase();
       return room['roomNumber'].toString().toLowerCase().contains(searchText) ||

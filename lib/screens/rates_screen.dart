@@ -1,4 +1,5 @@
 import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/screens/reservationslist.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,7 +14,28 @@ class _RatesScreenState extends State<RatesScreen> {
   List<Map<String, dynamic>> ratesData = [];
   String searchQuery = '';
   String? userAccountType;
+  final Map<String, String> _packageTranslations = {
+    'Room (Egyptian)': 'غرفة (مصري)',
+    'Room (Electronic warefare)': 'غرفة (حرب إلك)',
+    'Room (Military)': 'غرفة (عسكري)',
+    'Room (Foriegns)': 'غرفة (أجنبي)',
+    'Mini Suite (Egyptian)': 'ميني سويت (مصري)',
+    'Mini Suite (Electronic warefare)': 'ميني سويت (حرب إلك)',
+    'Mini Suite (Military)': 'ميني سويت (عسكري)',
+    'Mini Suite (Foriegns)': 'ميني سويت (أجنبي)',
+    'Suite (Egyptian)': 'سويت (مصري)',
+    'Suite (Electonice warefare)': 'سويت (حرب إلك)',
+    'Suite (Military)': 'سويت (عسكري)',
+    'Suite (Foriegns)': 'سويت (أجنبي)',
 
+  };
+  // Function to translate package names to Arabic
+  String _translatePackageName(String packageName) {
+    if (Localizations.localeOf(context).languageCode == 'ar') {
+      return _packageTranslations[packageName] ?? packageName; // Use original if no translation
+    }
+    return packageName; // Return the original if the locale is not Arabic
+  }
   @override
   void initState() {
     super.initState();
@@ -139,7 +161,7 @@ class _RatesScreenState extends State<RatesScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(S.current.ratesManagement,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Amiri',)),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
@@ -235,16 +257,19 @@ class _RatesScreenState extends State<RatesScreen> {
                         columnSpacing: 20.0,
                         horizontalMargin: 12.0,
                         columns: [
-                          DataColumn(label: Text(S.current.package, style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text(S.current.rate, style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text(S.current.package, style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                          DataColumn(label: Text(S.current.rate, style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
                           if (userAccountType == 'Admin' || userAccountType == 'Manager')
                             DataColumn(label: Text(S.current.actions, style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                         rows: filteredRatesData.map((rate) {
                           String docId = rate['roomType'];
                           return DataRow(cells: [
-                            DataCell(Text(rate['roomType'] ?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(rate['rate'] ?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataCell(Text(
+                              _translatePackageName(rate['roomType'] ?? 'N/A'),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 27),
+                            )),
+                            DataCell(Text(getLocalizedNumber(rate['rate'] )?? 'N/A', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                             if (userAccountType == 'Admin' || userAccountType == 'Manager')
                               DataCell(
                                 Row(

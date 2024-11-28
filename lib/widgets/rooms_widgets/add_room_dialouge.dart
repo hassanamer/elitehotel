@@ -1,8 +1,12 @@
+import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/screens/reservationslist.dart';
 import 'package:flutter/material.dart';
+
 
 
 class AddRoomDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onRoomAdded;
+
 
   AddRoomDialog({required this.onRoomAdded});
 
@@ -16,7 +20,19 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
   String _roomType = 'Room';
   String _cleaningStatus = 'Clean';
   int _roomFloor = 1; // Default floor
-  Map<String, bool> _selectedFacilities = {
+
+  // Function to get localized text for facilities
+  String getLocalizedFacility(String facility) {
+    const facilityDictionary = {
+      'WiFi': 'واي فاي',
+      'TV': 'تلفاز',
+      'Mini-bar': 'ميني بار',
+      'AC': 'مكيف',
+      'Fridge': 'ثلاجة',
+    };
+    return facilityDictionary[facility] ?? facility;
+  }
+   Map<String, bool> _selectedFacilities = {
     'WiFi': false,
     'TV': false,
     'Mini-bar': false,
@@ -33,7 +49,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       'status': 'Available', // Default status
       'cleaningStatus': _cleaningStatus,
       'roomFacility': _selectedFacilities,
-      'currentGuest': null, // Default to null, can be updated later
+      'currentGuest': null,
     };
     widget.onRoomAdded(room);
     Navigator.of(context).pop();
@@ -56,7 +72,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               items: ['Single', 'Double', 'Suite'].map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(type),
+                  child:  Text(getLocalizedFacility(type)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -71,7 +87,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               items: ['Room', 'Mini Suite', 'Suite'].map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(type),
+                  child: Text(getLocalizedFacility(type)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -87,7 +103,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               items: [1, 2].map((floor) {
                 return DropdownMenuItem(
                   value: floor,
-                  child: Text(floor.toString()),
+                  child: Text(getLocalizedNumber(floor.toString())),
                 );
               }).toList(),
               onChanged: (value) {
@@ -102,7 +118,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
             Column(
               children: _selectedFacilities.keys.map((facility) {
                 return CheckboxListTile(
-                  title: Text(facility),
+                  title: Text(getLocalizedFacility(facility)),
                   value: _selectedFacilities[facility],
                   onChanged: (bool? value) {
                     setState(() {
@@ -118,7 +134,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
               items: ['Clean', 'Dirty'].map((status) {
                 return DropdownMenuItem(
                   value: status,
-                  child: Text(status),
+                  child: Text(getLocalizedText(status)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -126,7 +142,7 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
                   _cleaningStatus = value!;
                 });
               },
-              decoration: const InputDecoration(labelText: 'Cleaning Status'),
+              decoration:  InputDecoration(labelText:S.current.cleaningStatus),
             ),
           ],
         ),
@@ -134,11 +150,11 @@ class _AddRoomDialogState extends State<AddRoomDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child:  Text(S.current.cancel),
         ),
         ElevatedButton(
           onPressed: () => _submit(context),
-          child: const Text('Add Room'),
+          child:  Text(S.current.addNewRoom),
         ),
       ],
     );

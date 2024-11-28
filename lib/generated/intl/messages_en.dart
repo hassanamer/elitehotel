@@ -154,6 +154,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "guestNameLabel": MessageLookupByLibrary.simpleMessage("Guest Name"),
         "guestRequest": MessageLookupByLibrary.simpleMessage("Guest Request"),
         "guestRequests": MessageLookupByLibrary.simpleMessage("Guest Requests"),
+        "guestdetails": MessageLookupByLibrary.simpleMessage("Guest Details"),
         "guests": MessageLookupByLibrary.simpleMessage("Guests"),
         "hKattendancehis":
             MessageLookupByLibrary.simpleMessage("HK Attendance His.."),
@@ -204,6 +205,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Month\'s Payment Methods"),
         "monthreservations":
             MessageLookupByLibrary.simpleMessage("Month\'s Reservations:"),
+        "more": MessageLookupByLibrary.simpleMessage("More"),
         "name": MessageLookupByLibrary.simpleMessage("Name"),
         "nationalId": MessageLookupByLibrary.simpleMessage("National ID"),
         "nationality": MessageLookupByLibrary.simpleMessage("Nationality"),
@@ -272,12 +274,16 @@ class MessageLookup extends MessageLookupByLibrary {
         "requests": MessageLookupByLibrary.simpleMessage("Requests"),
         "reservationDeletedSuccess": MessageLookupByLibrary.simpleMessage(
             "Reservation deleted successfully!"),
+        "reservationDetails":
+            MessageLookupByLibrary.simpleMessage("Reservation Details"),
         "reservationId": MessageLookupByLibrary.simpleMessage("Reservation ID"),
         "reservationSuccess": MessageLookupByLibrary.simpleMessage(
             "Reservation created successfully!"),
         "reservations": MessageLookupByLibrary.simpleMessage("Reservations"),
         "reservationsamount":
-            MessageLookupByLibrary.simpleMessage("Reservations Amount\'"),
+            MessageLookupByLibrary.simpleMessage("Reservations Amount"),
+        "reservationslist":
+            MessageLookupByLibrary.simpleMessage("Reservations List"),
         "resetLinkSent": MessageLookupByLibrary.simpleMessage(
             "Password reset link sent to your email."),
         "resetPassword": MessageLookupByLibrary.simpleMessage("Reset Password"),

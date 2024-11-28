@@ -153,6 +153,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "guestNameLabel": MessageLookupByLibrary.simpleMessage("اسم الضيف"),
         "guestRequest": MessageLookupByLibrary.simpleMessage("طلب الضيف"),
         "guestRequests": MessageLookupByLibrary.simpleMessage("طلبات الضيوف"),
+        "guestdetails": MessageLookupByLibrary.simpleMessage("بيانات النزيل"),
         "guests": MessageLookupByLibrary.simpleMessage("النزلاء"),
         "hKattendancehis":
             MessageLookupByLibrary.simpleMessage("سجل خدمة الغرف"),
@@ -204,6 +205,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("سجل وسائل الدفع الشهرية"),
         "monthreservations":
             MessageLookupByLibrary.simpleMessage("إجمالي حجوزات الشهر"),
+        "more": MessageLookupByLibrary.simpleMessage("أكثر"),
         "name": MessageLookupByLibrary.simpleMessage("الاسم"),
         "nationalId": MessageLookupByLibrary.simpleMessage("الرقم القومي"),
         "nationality": MessageLookupByLibrary.simpleMessage("الجنسية"),
@@ -239,7 +241,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "oct": MessageLookupByLibrary.simpleMessage("أكتوبر"),
         "ok": MessageLookupByLibrary.simpleMessage("موافق"),
         "overview": MessageLookupByLibrary.simpleMessage("نظرة عامة"),
-        "package": MessageLookupByLibrary.simpleMessage("الحزمة"),
+        "package": MessageLookupByLibrary.simpleMessage("الباكيدج"),
         "password": MessageLookupByLibrary.simpleMessage("كلمة المرور"),
         "paymenMethod": MessageLookupByLibrary.simpleMessage("وسيلة الدفع"),
         "paymentmethods":
@@ -268,12 +270,16 @@ class MessageLookup extends MessageLookupByLibrary {
         "requests": MessageLookupByLibrary.simpleMessage("الطلبات"),
         "reservationDeletedSuccess":
             MessageLookupByLibrary.simpleMessage("تم حذف الحجز بنجاح"),
+        "reservationDetails":
+            MessageLookupByLibrary.simpleMessage("تفاصيل الحجز"),
         "reservationId": MessageLookupByLibrary.simpleMessage("معرف الحجز"),
         "reservationSuccess":
             MessageLookupByLibrary.simpleMessage("تم إنشاء الحجز بنجاح!"),
         "reservations": MessageLookupByLibrary.simpleMessage("الحجوزات"),
         "reservationsamount":
             MessageLookupByLibrary.simpleMessage("إجمالي الحجوزات"),
+        "reservationslist":
+            MessageLookupByLibrary.simpleMessage("قائمة الحجوزات"),
         "resetLinkSent": MessageLookupByLibrary.simpleMessage(
             "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني."),
         "resetPassword":
@@ -294,7 +300,7 @@ class MessageLookup extends MessageLookupByLibrary {
             "ابحث حسب رقم الغرفة أو نوع السرير أو الطابق"),
         "selectNoteFrequency":
             MessageLookupByLibrary.simpleMessage("اختر تكرار الملاحظة"),
-        "selectPackage": MessageLookupByLibrary.simpleMessage("إختر الحزمة"),
+        "selectPackage": MessageLookupByLibrary.simpleMessage("إختر الباكيدج"),
         "selectRoomType":
             MessageLookupByLibrary.simpleMessage("من فضلك أختر نوع الغرفة"),
         "selectYear": MessageLookupByLibrary.simpleMessage("اختر السنة"),
@@ -362,7 +368,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "totalnights": MessageLookupByLibrary.simpleMessage("عدد الليالي"),
         "tv": MessageLookupByLibrary.simpleMessage("تلفاز"),
         "unknown": MessageLookupByLibrary.simpleMessage("غير معروف"),
-        "upcoming": MessageLookupByLibrary.simpleMessage("قيد الانتظار"),
+        "upcoming": MessageLookupByLibrary.simpleMessage("قادم"),
         "update": MessageLookupByLibrary.simpleMessage("تحديث"),
         "userAccounts":
             MessageLookupByLibrary.simpleMessage("حسابات المستخدمين"),

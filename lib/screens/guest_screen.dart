@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class GuestScreen extends StatefulWidget {
   @override
@@ -8,7 +9,7 @@ class GuestScreen extends StatefulWidget {
 }
 
 class _GuestScreenState extends State<GuestScreen> {
-  String selectedStatus = 'All';
+  String selectedStatus = 'all';
   TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> guestData = [];
   List<Map<String, dynamic>> filteredData = [];
@@ -17,6 +18,7 @@ class _GuestScreenState extends State<GuestScreen> {
   void initState() {
     super.initState();
     fetchGuestData();
+
   }
 
   Future<void> fetchGuestData() async {
@@ -81,33 +83,81 @@ class _GuestScreenState extends State<GuestScreen> {
     }
   }
 
-// Define a map for identifiers and their localized strings
+
+  String _localizeStatus(String status, Locale locale) {
+    if (locale.languageCode == 'ar') {
+      switch (status) {
+        case 'Checked In':
+          return 'تم تسجيل الدخول';
+        case 'Checked Out':
+          return 'تم تسجيل الخروج';
+        case 'Upcoming':
+          return 'قادم';
+        case 'Occupied':
+          return 'محجوز';
+        case 'Available':
+          return 'متاح';
+        default:
+          return status;
+      }
+    }
+    return status;
+  }
+  String _reverseLocalizeStatus(String localizedStatus, Locale locale) {
+    if (locale.languageCode == 'ar') {
+      switch (localizedStatus) {
+        case 'تم تسجيل الدخول':
+          return 'Checked In';
+        case 'تم تسجيل الخروج':
+          return 'Checked Out';
+        case 'قادم':
+          return 'Upcoming';
+        case 'محجوز':
+          return 'Occupied';
+        case 'متاح':
+          return 'Available';
+        case 'all': // For the "all" dropdown option
+          return 'all';
+        default:
+          return localizedStatus;
+      }
+    }
+    return localizedStatus;
+  }
   final statusOptions = {
     'all': S.current.all,
-    'checkedIn': S.current.checkedIn,
-    'checkedOut': S.current.checkedOut,
-    'upcoming': S.current.upcoming,
+    'Checked In': S.current.checkedIn,
+    'Checked Out': S.current.checkedOut,
+    'Upcoming': S.current.upcoming,
   };
-
   void filterData() {
     String searchQuery = searchController.text.toLowerCase();
+    Locale locale = Localizations.localeOf(context);
+    print("Selected Status: $selectedStatus");
+    print("Search Query: $searchQuery");
     setState(() {
       filteredData = guestData.where((guest) {
-        bool matchesStatus =
-            selectedStatus == 'All' || guest['checkInOut'] == selectedStatus;
+        // Reverse localize the selected status for filtering
+        String actualStatus = _reverseLocalizeStatus(selectedStatus, locale);
+        print("Actual Status for Filtering: $actualStatus");
+        // Match the reversed localized status
+        bool matchesStatus = actualStatus == 'all' ||
+            guest['checkInOut'] == actualStatus;
+        print("Guest CheckInOut: ${guest['checkInOut']}, Matches Status: $matchesStatus");
+        // Match search query
         bool matchesSearch =
-            (guest['name']?.toString().toLowerCase().contains(searchQuery) ??
-                    false) ||
+            (guest['name']?.toString().toLowerCase().contains(searchQuery) ?? false) ||
                 (guest['reservationId']
-                        ?.toString()
-                        .toLowerCase()
-                        .contains(searchQuery) ??
+                    ?.toString()
+                    .toLowerCase()
+                    .contains(searchQuery) ??
                     false) ||
                 (guest['roomNumber']
-                        ?.toString()
-                        .toLowerCase()
-                        .contains(searchQuery) ??
+                    ?.toString()
+                    .toLowerCase()
+                    .contains(searchQuery) ??
                     false);
+        print("Matches Search: $matchesSearch");
         return matchesStatus && matchesSearch;
       }).toList();
     });
@@ -130,15 +180,31 @@ class _GuestScreenState extends State<GuestScreen> {
     }
   }
 
+  String convertNumberToArabic(String number) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.replaceAllMapped(RegExp(r'\d'), (match) {
+      return arabicDigits[int.parse(match.group(0)!)];
+    });
+  }
+  String getLocalizedNumber(String number) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      return convertNumberToArabic(number);
+    }
+    return number;
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    Locale locale = Localizations.localeOf(context);
+
     if (screenWidth > 600) {
       return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title:  Text(S.current.guestManagement,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 26,  fontFamily: 'Amiri',fontWeight: FontWeight.bold)),
           backgroundColor: const Color(0xFFDBB017),
         ),
         body: Padding(
@@ -165,28 +231,27 @@ class _GuestScreenState extends State<GuestScreen> {
                   Expanded(
                     flex: 1,
                     child: DropdownButtonFormField<String>(
-                      // Ensure selectedStatus is a valid key or default to 'all'
-                      value: statusOptions.keys.contains(selectedStatus) ? selectedStatus : 'all',
+                      value: selectedStatus, // Ensure selectedStatus is one of the keys in statusOptions
                       items: statusOptions.keys.map((key) {
                         return DropdownMenuItem<String>(
-                          value: key,  // Use the identifier as the value
-                          child: Text(statusOptions[key]!),  // Display the localized string
+                          value: key, // Use the key (e.g., 'all', 'Checked In')
+                          child: Text(statusOptions[key]!,style: TextStyle( fontFamily: 'Amiri',fontWeight: FontWeight.bold),), // Display the localized string
                         );
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
-                          selectedStatus = value!;
+                          selectedStatus = value!; // Update selectedStatus with the key
                           filterData();
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: S.current.filterByStatus,
+                        labelText: S.current.filterByStatus, // Localized label
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
-                    ),                  ),
-                ],
+                    ),
+                  ),                ],
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -214,51 +279,59 @@ class _GuestScreenState extends State<GuestScreen> {
                       columns:  [
                         DataColumn(
                             label: Text(S.current.reservationId,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.name,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.roomNumber,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.totalAmount,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.amountPaidLabel,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.status,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
                             label: Text(S.current.checkInOut,
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                         DataColumn(
-                            label: Text('More',
-                                style: TextStyle(fontWeight: FontWeight.bold))),
+                            label: Text(S.current.more,
+                                style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold, fontFamily: 'Amiri',))),
                       ],
                       rows: filteredData.map((guest) {
                         return DataRow(cells: [
-                          DataCell(Text(guest['reservationId'].toString())),
-                          DataCell(Text(guest['name']!)),
-                          DataCell(Text(guest['roomNumber']!)),
-                          DataCell(Text('${guest['totalAmount']}')),
-                          DataCell(Text('${guest['amountPaid']}')),
+                          DataCell(Text(getLocalizedNumber(
+                              guest['reservationId'].toString()),style: TextStyle(fontSize: 16,),)),
+                          DataCell(Text(guest['name']!,style: TextStyle(fontSize: 16,),)),
+
+                          DataCell(Text(getLocalizedNumber(
+                              guest['roomNumber']!),style: TextStyle(fontSize: 16,),)),
+
+                          DataCell(Text(getLocalizedNumber(
+                              '${guest['totalAmount']}'),style: TextStyle(fontSize: 16,),)),
+
+                          DataCell(Text(getLocalizedNumber(
+                              '${guest['amountPaid']}'),style: TextStyle(fontSize: 16,),)),
+
                           DataCell(
                             Text(
-                              guest['status']!,
+                              _localizeStatus(guest['status']!, locale),
                               style: TextStyle(
                                 color: getStatusColor(guest['status']!),
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w600,fontSize: 16,
                               ),
                             ),
                           ),
                           DataCell(
                             Text(
-                              guest['checkInOut']!,
-                              style: TextStyle(
+                              _localizeStatus(guest['checkInOut']!, locale),                              style: TextStyle(
                                 color: getStatusColor(guest['checkInOut']!),
                                 fontWeight: FontWeight.w600,
+                              fontSize: 16,
                               ),
                             ),
                           ),
@@ -314,31 +387,31 @@ class _GuestScreenState extends State<GuestScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
+// Dropdown Widget
                   Expanded(
-                    flex: 1, // Filter dropdown takes 1 part
+                    flex: 1,
                     child: DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      items: ['All', S.current.checkedIn, S.current.checkedOut, S.current.upcoming]
-                          .map((status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status ,style: TextStyle(fontSize: 12,fontWeight: FontWeight.bold),),
-                      ))
-                          .toList(),
+                      value: selectedStatus, // Ensure selectedStatus is one of the keys in statusOptions
+                      items: statusOptions.keys.map((key) {
+                        return DropdownMenuItem<String>(
+                          value: key, // Use the key (e.g., 'all', 'Checked In')
+                          child: Text(statusOptions[key]!), // Display the localized string
+                        );
+                      }).toList(),
                       onChanged: (value) {
                         setState(() {
-                          selectedStatus = value!;
+                          selectedStatus = value!; // Update selectedStatus with the key
                           filterData();
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: S.current.filterByStatus,
+                        labelText: S.current.filterByStatus, // Localized label
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ),                ],
               ),
               const SizedBox(height: 20),
               Expanded(
@@ -379,14 +452,20 @@ class _GuestScreenState extends State<GuestScreen> {
                       ],
                       rows: filteredData.map((guest) {
                         return DataRow(cells: [
-                          DataCell(Text(guest['reservationId'].toString())),
+                          DataCell(Text(getLocalizedNumber(
+                              guest['reservationId'].toString()))),
                           DataCell(Text(guest['name']!)),
-                          DataCell(Text(guest['roomNumber']!)),
-                          DataCell(Text('\$${guest['totalAmount']}')),
-                          DataCell(Text('\$${guest['amountPaid']}')),
+
+                          DataCell(Text(getLocalizedNumber(
+                              guest['roomNumber']!))),
+
+                          DataCell(Text(getLocalizedNumber(
+                              '${guest['totalAmount']}'))),
+                          DataCell(Text(getLocalizedNumber(
+                              '${guest['amountPaid']}'))),
                           DataCell(
                             Text(
-                              guest['status']!,
+                              _localizeStatus(guest['status']!, locale),
                               style: TextStyle(
                                 color: getStatusColor(guest['status']!),
                                 fontWeight: FontWeight.w600,
@@ -395,8 +474,7 @@ class _GuestScreenState extends State<GuestScreen> {
                           ),
                           DataCell(
                             Text(
-                              guest['checkInOut']!,
-                              style: TextStyle(
+                              _localizeStatus(guest['checkInOut']!, locale),                              style: TextStyle(
                                 color: getStatusColor(guest['checkInOut']!),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -430,31 +508,43 @@ class _GuestScreenState extends State<GuestScreen> {
 }
 
 class GuestDetailScreen extends StatelessWidget {
+
   final Map<String, dynamic> guest;
 
   GuestDetailScreen({required this.guest}) {
     // Print the guest data to debug
     print('Guest Data in Detail Screen: $guest');
   }
-
+  String convertNumberToArabic(String number) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.replaceAllMapped(RegExp(r'\d'), (match) {
+      return arabicDigits[int.parse(match.group(0)!)];
+    });
+  }
+  String getLocalizedNumber(String number) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      return convertNumberToArabic(number);
+    }
+    return number;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Guest Details'),
+        title: Text(S.current.guestdetails),
         backgroundColor: const Color(0xFFDBB017),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            _buildDetailCard('Name', guest['name'], Icons.person),
-            _buildDetailCard('Address', guest['guestAddress'] ?? 'N/A', Icons.home),
-            _buildDetailCard('Job', guest['job'], Icons.work),
-            _buildDetailCard('Mobile Number', guest['mobileNumber'], Icons.phone),
-            _buildDetailCard('National ID', guest['nationalId'], Icons.badge),
-            _buildDetailCard('Nationality', guest['nationality'], Icons.flag),
+            _buildDetailCard(S.current.guestdetails, guest['name'], Icons.person),
+            _buildDetailCard(S.current.guestAddress, guest['guestAddress'] ?? 'N/A', Icons.home),
+            _buildDetailCard(S.current.job, guest['job'], Icons.work),
+            _buildDetailCard(S.current.mobileNumber, getLocalizedNumber(guest['mobileNumber'].toString()), Icons.phone),
+            _buildDetailCard(S.current.nationalId,getLocalizedNumber(guest['nationalId'].toString()), Icons.badge),
+            _buildDetailCard(S.current.nationality, guest['nationality'], Icons.flag),
             // Add more cards for additional details if needed
           ],
         ),

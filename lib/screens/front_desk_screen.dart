@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/screens/rooms_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -223,144 +225,178 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       'notes.status': newStatus,
     });
     _fetchDailyReminders(selectedReminderDate);
+
   }
 
   Widget _buildDailyReminders() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                S.current.dailyGuestRequests,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.calendar_today),
-                onPressed: () => _selectDate(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          dailyReminders.isNotEmpty
-              ? ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: dailyReminders.length,
-            itemBuilder: (context, index) {
-              final reminder = dailyReminders[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.room_service_outlined,
-                            color: const Color(0xFFDBB017),
-                            size: 30,
-                          ),
-                          SizedBox(width: 8), // Add some space between the icon and text
-                          Text(
-                            '${S.current.room} ${reminder['room']}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8), // Add some space between the rows
-                      Text(
-                        '${reminder['guestRequest']}',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      SizedBox(height: 8), // Add some space between the subtitle and buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              backgroundColor: reminder['assignedToHK']
-                                  ? Colors.green
-                                  : const Color(0xFFDBB017),
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (!reminder['assignedToHK']) {
-                                _assignToHK(reminder['reservationId']);
-                              }
-                            },
-                            child: Text(
-                              reminder['assignedToHK']
-                                  ? S.current.assigned
-                                  : S.current.assignedToHk,
-                              style: TextStyle(fontSize: 18, color: Colors.white),
-                            ),
-                          ),
-                          DropdownButton<String>(
-                            value: statusOptions.keys.contains(reminder['status'])
-                                ? reminder['status']
-                                : 'pending',
-                            items: statusOptions.keys.map((key) {
-                              return DropdownMenuItem<String>(
-                                value: key,
-                                child: Text(statusOptions[key]!),
-                              );
-                            }).toList(),
-                            onChanged: (newStatus) {
-                              if (newStatus != null) {
-                                _updateRequestStatus(reminder['reservationId'], newStatus);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  S.current.dailyGuestRequests,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
                   ),
                 ),
-              );
-            },
-          )
-              : Center(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Text(
-                S.current.noRequestsForToday,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
+                IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: () => _selectDate(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            dailyReminders.isNotEmpty
+                ? ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: dailyReminders.length,
+              itemBuilder: (context, index) {
+                final reminder = dailyReminders[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10.0, horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.room_service_outlined,
+                              color: const Color(0xFFDBB017),
+                              size: 30,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '${S.current.room} ${reminder['room']}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '${reminder['guestRequest']}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: reminder['assignedToHK']
+                                    ? Colors.green
+                                    : const Color(0xFFDBB017),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (!reminder['assignedToHK']) {
+                                  _assignToHK(reminder['reservationId']);
+                                }
+                              },
+                              child: Text(
+                                reminder['assignedToHK']
+                                    ? S.current.assigned
+                                    : S.current.assignedToHk,
+                                style: TextStyle(
+                                    fontSize: 18, color: Colors.white, fontFamily: 'Amiri',),
+                              ),
+                            ),
+                            DropdownButton<String>(
+                              value: reminder['status'], // Directly bind to reminder['status']
+
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'Pending',
+                                  child: Text(S.current.pending,
+                                      style: TextStyle(color: Colors.orange, fontFamily: 'Amiri',)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'In Progress',
+                                  child: Text(S.current.inProgress,
+                                      style: TextStyle(color: Colors.blue, fontFamily: 'Amiri',)),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Completed',
+                                  child: Text(S.current.completed,
+                                      style: TextStyle(color: Colors.green, fontFamily: 'Amiri',)),
+                                ),
+                              ],
+                                onChanged: (newStatus) async {
+                                  if (newStatus != null) {
+                                    setState(() {
+                                      reminder['status'] = newStatus; // Update UI state immediately
+                                    });
+
+                                    try {
+                                      // Update Firestore or backend
+                                      await FirebaseFirestore.instance
+                                          .collection('notes')
+                                          .doc(reminder['reservationId'])
+                                          .update({'status': newStatus});
+                                    } catch (e) {
+                                      print('Error updating status: $e');
+                                      // Optionally revert the state if the update fails
+                                      setState(() {
+                                        reminder['status'] = 'Pending';
+                                      });
+                                    }
+                                  }
+                                }
+
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
+                : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(
+                  S.current.noRequestsForToday,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-  Widget _buildDailyRemindersForMob() {
+}
+
+Widget _buildDailyRemindersForMob() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -507,13 +543,19 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text(S.current.frontDesk),
+          title: Text(S.current.frontDesk,style: TextStyle(fontSize: 26, fontFamily: 'Amiri',fontWeight: FontWeight.bold),),
           backgroundColor: const Color(0xFFDBB017),
           bottom: TabBar(
             tabs: [
               Tab(text: S.current.calendar),
               Tab(text: S.current.dailyGuestRequests),
             ],
+            labelStyle: TextStyle(
+              color: Colors.black,
+              fontFamily: 'Amiri', // Apply Amiri font family
+              fontSize: 22, // Optional: Adjust the font size if needed
+              fontWeight: FontWeight.bold, // Optional: Set bold weight for the text
+            ),
           ),
         ),
         body: TabBarView(
@@ -555,15 +597,24 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
                 focusedDay: selectedDate,
                 calendarFormat: CalendarFormat.month,
                 selectedDayPredicate: (day) {
-                  if (selectedRange == null) return false;
-                  return day.isAtSameMomentAs(selectedRange!.start) ||
-                      (day.isAfter(selectedRange!.start) &&
-                          day.isBefore(selectedRange!.end.add(Duration(days: 1))));
+                  return day.isAtSameMomentAs(selectedDate);
                 },
                 onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    selectedDate = selectedDay;
+                    selectedRange = null; // Clear the range when a new date is selected
+                  });
                   _fetchRoomStatusForDate(selectedDay);
                 },
                 calendarStyle: CalendarStyle(
+                  selectedDecoration: BoxDecoration(
+                    color: Colors.blue, // Color for the selected day
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Colors.orange, // Color for today's date
+                    shape: BoxShape.circle,
+                  ),
                   rangeHighlightColor: Colors.transparent, // Disable default blue highlight
                 ),
                 calendarBuilders: CalendarBuilders(
@@ -604,7 +655,6 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       ],
     );
   }
-
 
   Future<void> _fetchRoomStatusForDate(DateTime date) async {
     setState(() {
@@ -658,20 +708,66 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
   }
 
   Widget _buildRoomList() {
+    String _translateRoomTypeToArabic(String roomType) {
+      // Add translations for room types here
+      switch (roomType) {
+        case 'Suite':
+          return 'سويت';
+        case 'Mini Suite':
+          return 'ميني سويت';
+        case 'Room':
+          return 'غرفة';
+      // Add more cases as needed
+        default:
+          return roomType; // Return the original if no translation is found
+      }
+    }
+    String _translateRoomStatusToArabic(String status) {
+      // Add translations for room statuses here
+      switch (status) {
+        case 'Occupied':
+          return 'مشغول';
+        case 'Available':
+          return 'متاح';
+      // Add more cases as needed
+        default:
+          return status; // Return the original if no translation is found
+      }
+    }
     return Column(
       children: [
+        SizedBox(height: 5,),
         Text(
           S.current.roomStatus,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Amiri',),
         ),
+        SizedBox(height: 5,),
+
         Expanded(
           child: ListView.builder(
             itemCount: allRooms.length,
             itemBuilder: (context, index) {
               final room = allRooms[index];
+              String roomNumber = room['roomNumber'];
+              String roomType = room['roomType'];
+              String roomStatus = room['status'];
+
+
+              // Check if the current locale is Arabic
+              if (Localizations.localeOf(context).languageCode == 'ar') {
+                // Format the room number in Arabic
+                roomNumber = NumberFormat.decimalPattern('ar').format(int.parse(roomNumber));
+                // Translate the room type to Arabic
+                roomType = _translateRoomTypeToArabic(roomType);
+                roomStatus = _translateRoomStatusToArabic(roomStatus);
+
+              }
+
+              String roomDisplay = '$roomType ${getLocalizedNumber(roomNumber)}'; // Dynamic room type
+
               return ListTile(
-                title: Text('${S.current.room} ${room['roomNumber']}'),
-                subtitle: Text(room['status']),
+                title: Text(roomDisplay,style: TextStyle(fontSize: 18,),),
+                subtitle: Text(roomStatus,style: TextStyle(fontSize: 16,),),
                 tileColor: room['status'] == 'Available'
                     ? Colors.greenAccent.withOpacity(0.2)
                     : Colors.redAccent.withOpacity(0.2),
@@ -691,40 +787,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       ],
     );
   }
-  Future<void> _fetchRoomReservationsForRange(DateTime start, DateTime end) async {
-    // Fetch reservations overlapping the selected date range
-    QuerySnapshot snapshot = await _firestore
-        .collection('reservations')
-        .where('checkOutDate', isGreaterThanOrEqualTo: start)
-        .where('checkInDate', isLessThanOrEqualTo: end)
-        .get();
 
-    setState(() {
-      roomReservations = []; // Clear previous reservations
-
-      for (var doc in snapshot.docs) {
-        DateTime checkInDate = (doc['checkInDate'] as Timestamp).toDate();
-        DateTime checkOutDate = (doc['checkOutDate'] as Timestamp).toDate();
-
-        // Mark dates between check-in and check-out
-        DateTime currentDay = checkInDate;
-        while (currentDay.isBefore(checkOutDate)) {
-          if (currentDay.isAfter(start.subtract(Duration(days: 1))) &&
-              currentDay.isBefore(end.add(Duration(days: 1)))) {
-            roomReservations.add(
-              Appointment(
-                startTime: currentDay,
-                endTime: currentDay.add(const Duration(days: 1)),
-                subject: '${S.current.room} ${doc['roomNumber']} - ${S.current.occupied}',
-                color: Colors.red, // Highlight for reserved days
-              ),
-            );
-          }
-          currentDay = currentDay.add(const Duration(days: 1));
-        }
-      }
-    });
-  }
 
 }
 
