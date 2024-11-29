@@ -750,6 +750,16 @@ class S {
     );
   }
 
+  /// `User Accounts`
+  String get useraccounts {
+    return Intl.message(
+      'User Accounts',
+      name: 'useraccounts',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Select Year`
   String get selectYear {
     return Intl.message(

@@ -10,7 +10,29 @@ class RoomsSection extends StatefulWidget {
 class _RoomsSectionState extends State<RoomsSection> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> ratesData = [];
-
+  final Map<String, String> _packageTranslations = {
+    'Room (Egyptian)': 'غرفة (مصري)',
+    'Room (Electronic warefare)': 'غرفة (حرب إلك)',
+    'Room (Military)': 'غرفة (عسكري)',
+    'Room (Foriegns)': 'غرفة (أجنبي)',
+    'Mini Suite (Egyptian)': 'ميني سويت (مصري)',
+    'Mini Suite (Electronic warefare)': 'ميني سويت (حرب إلك)',
+    'Mini Suite (Military)': 'ميني سويت (عسكري)',
+    'Mini Suite (Foriegns)': 'ميني سويت (أجنبي)',
+    'Suite (Egyptian)': 'سويت (مصري)',
+    'Suite (Electonice warefare)': 'سويت (حرب إلك)',
+    'Suite (Military)': 'سويت (عسكري)',
+    'Suite (Foriegns)': 'سويت (أجنبي)',
+    'Wedding Package': 'باكيدج فرح',
+  };
+  // Function to translate package names to Arabic
+  String _translatePackageName(String packageName) {
+    if (Localizations.localeOf(context).languageCode == 'ar') {
+      return _packageTranslations[packageName] ??
+          packageName; // Use original if no translation
+    }
+    return packageName; // Return the original if the locale is not Arabic
+  }
   @override
   void initState() {
     super.initState();
@@ -158,12 +180,10 @@ class _RoomsSectionState extends State<RoomsSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                _translatePackageName(title),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Increase font size
               ),
-              const SizedBox(height: 4),
-              Text(status, style: const TextStyle(fontSize: 16,fontWeight: FontWeight.bold,color: Colors.grey)), // Style status
-              const SizedBox(height: 1),
+              const SizedBox(height: 8),
               Text(
                 price,
                 style: const TextStyle(color:  Color(0xFFDBB017), fontSize: 20, fontWeight: FontWeight.bold), // Increase font size
@@ -174,4 +194,6 @@ class _RoomsSectionState extends State<RoomsSection> {
       ),
     );
   }
+
+
 }

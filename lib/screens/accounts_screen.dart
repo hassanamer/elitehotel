@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AccountsScreen extends StatefulWidget {
   @override
@@ -11,6 +12,49 @@ class AccountsScreen extends StatefulWidget {
 class _AccountsScreenState extends State<AccountsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool isAdmin = false;
+
+  String getLocalizedStatus(String status) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      switch (status) {
+        case 'Admin':
+          return 'أدمن';
+        case 'Manager':
+          return 'مدير';
+        case 'Front Desk':
+          return 'موظف استقبال';
+        case 'HK Staff':
+          return 'خدمة الغرف';
+        default:
+          return status; // Return the original status if no translation is available
+      }
+    }
+    return status; // Return the original status for non-Arabic locales
+  }
+
+  String convertToArabic(String text) {
+    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    String arabicText = text.replaceAllMapped(RegExp(r'\d'), (match) {
+      return arabicDigits[int.parse(match.group(0)!)];
+    });
+    const textDictionary = {
+      'Admin': 'أدمن',
+      'Manager': 'مدير',
+      'Front Desk': 'موظف استقبال',
+      'HK Staff': 'خدمة الغرف',
+    };
+    textDictionary.forEach((key, value) {
+      arabicText = arabicText.replaceAll(key, value);
+    });
+    return arabicText;
+  }
+
+  String getLocalizedText(String text) {
+    if (Intl.getCurrentLocale() == 'ar') {
+      return convertToArabic(text);
+    }
+    return text;
+  }
+
 
   // Controllers for new user inputs
   final TextEditingController _emailController = TextEditingController();
@@ -120,14 +164,15 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 items: roleOptions.map((role) {
                   return DropdownMenuItem(
                     value: role,
-                    child: Text(role),
+                    child: Text(getLocalizedStatus(role)),
                   );
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
                       _selectedAccountType = value;
-                    });
+                    }
+                    );
                   }
                 },
               ),
@@ -167,6 +212,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 600) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -275,6 +322,124 @@ class _AccountsScreenState extends State<AccountsScreen> {
         child: const Icon(Icons.add),
       )
           : null,
-    );
+    );}else{
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title:  Text(
+            S.current.userAccounts,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,                fontFamily: 'Amiri',
+            ),
+          ),
+          backgroundColor: const Color(0xFFDBB017),
+        ),
+        body: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No accounts found'));
+                }
+                return ListView(
+                  children: snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final userId = doc.id;
+                    String currentRole = (data['accountType'] ?? 'Front Desk').toLowerCase();
+
+                    // Ensure currentRole matches one of the dropdown items
+                    if (roleOptions.map((role) => role.toLowerCase()).contains(currentRole)) {
+                      currentRole = roleOptions.firstWhere((role) => role.toLowerCase() == currentRole);
+                    } else {
+                      currentRole = 'Front Desk'; // Fallback to default role if mismatch
+                    }
+
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      elevation: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16.0),
+                        title: Text(
+                          data['name'] ?? 'No Name',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        subtitle: Column(
+                          children: [
+                            SizedBox(height: 5,),
+
+                            Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+
+                                Text(
+                                  data['email'] ?? 'No Email',
+                                  style: TextStyle(color: Colors.grey[700],fontSize: 16),
+                                ),
+                                SizedBox(height: 5,),
+                                Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    DropdownButton<String>(
+                                      value: currentRole,
+                                      items: roleOptions.map((role) {
+                                        return DropdownMenuItem(
+                                          value: role,
+                                          child: Text(getLocalizedStatus(role)),
+                                        );
+                                      }).toList(),
+                                      onChanged: isAdmin
+                                          ? (newRole) {
+                                        if (newRole != null && newRole != currentRole) {
+                                          _updateAccountType(userId, newRole);
+                                        }
+                                      }
+                                          : null,
+                                      disabledHint: Text(
+                                        currentRole,
+                                        style: TextStyle(color: Colors.grey[700]),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.delete, color: Colors.red),
+                                      onPressed: isAdmin
+                                          ? () => _deleteUser(userId)
+                                          : null,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            )
+
+        ),
+        floatingActionButton: isAdmin
+            ? FloatingActionButton(
+          onPressed: _showAddUserDialog,
+          backgroundColor: const Color(0xFFDBB017),
+          child: const Icon(Icons.add),
+        )
+            : null,
+      );
+
+    }
   }
 }

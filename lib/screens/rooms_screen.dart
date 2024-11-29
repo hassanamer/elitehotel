@@ -329,28 +329,28 @@ class _RoomsScreenState extends State<RoomsScreen> {
     return [
       DataColumn(
           label: Text(S.current.roomNumber,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.bedType,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.roomType,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.roomFloor,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.facilities,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.status,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.cleaningStatus,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
       DataColumn(
           label: Text(S.current.currentGuest,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20),)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
     ];
   }
 

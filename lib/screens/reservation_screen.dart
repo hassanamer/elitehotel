@@ -62,6 +62,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
     'Suite (Electonice warefare)': 'سويت (حرب إلك)',
     'Suite (Military)': 'سويت (عسكري)',
     'Suite (Foriegns)': 'سويت (أجنبي)',
+    'Wedding Extra Suite[Egp]': 'سويت فرح اضافي(مصري)',
+    'Wedding Extra Suite[Foriegn]': 'سويت فرح اضافي(اجنبي)',
+    'Wedding Extra R[Foriegn]': 'غرفة فرح اضافية(اجنبي)',
+    'Wedding Extra R[Egp]': 'غرفة فرح اضافية(مصري)',
+    'Wedding Package': 'باكيدج فرح',
 
   };
   // Function to translate package names to Arabic

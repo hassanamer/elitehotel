@@ -380,6 +380,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "userRoleHKStaff":
             MessageLookupByLibrary.simpleMessage("موظف التدبير المنزلي"),
         "userRoleManager": MessageLookupByLibrary.simpleMessage("مدير"),
+        "useraccounts":
+            MessageLookupByLibrary.simpleMessage("حسابات المستخدمين"),
         "visa": MessageLookupByLibrary.simpleMessage("فيزا"),
         "welcomeBack": MessageLookupByLibrary.simpleMessage(
             "مرحبًا بعودتك إلى فندق إيليت"),

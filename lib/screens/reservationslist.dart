@@ -163,6 +163,7 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 600) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -242,31 +243,31 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                     columns: [
                       DataColumn(
                           label: Text(S.current.reservationId,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.guestName,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.roomNumber,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.totalCost,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.amountPaid,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.status,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.checkInOut,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.more,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                       DataColumn(
                           label: Text(S.current.invoices,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 20))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
                     ],
                     rows: filteredData.map((reservation) {
                       return DataRow(cells: [
@@ -356,7 +357,191 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
           ],
         ),
       ),
-    );
+    );}
+    else{
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text(S.current.sideMenuReservations,
+              style: TextStyle( fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 26)),
+          backgroundColor: const Color(0xFFDBB017),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        labelText: S.current.searchBy,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        prefixIcon: const Icon(Icons.search),
+                      ),
+                      onChanged: (value) => filterData(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      items: [
+                        DropdownMenuItem(value: S.current.all, child: Text(S.current.all)),
+                        DropdownMenuItem(value: S.current.checkedIn, child: Text(S.current.checkedIn)),
+                        DropdownMenuItem(value: S.current.checkedOut, child: Text(S.current.checkedOut)),
+                        DropdownMenuItem(value: S.current.upcoming, child: Text(S.current.upcoming)),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedStatus = value!;
+                          filterData();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        labelText: S.current.filterByStatus,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                      ),
+                    ),
+                  ),              ],
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: MaterialStateColor.resolveWith(
+                              (states) => const Color(0xFFDBB017)),
+                      columnSpacing: 20.0,
+                      horizontalMargin: 12.0,
+                      columns: [
+                        DataColumn(
+                            label: Text(S.current.reservationId,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.guestName,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.roomNumber,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.totalCost,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.amountPaid,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.status,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.checkInOut,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.more,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                        DataColumn(
+                            label: Text(S.current.invoices,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                      ],
+                      rows: filteredData.map((reservation) {
+                        return DataRow(cells: [
+                          DataCell(Text(getLocalizedNumber(reservation['reservationId'].toString()),style: TextStyle(fontSize: 16,),)),
+                          DataCell(Text(reservation['guestName']!,style: TextStyle(fontSize: 16,),)),
+                          DataCell(Text(getLocalizedNumber(reservation['roomNumber']!),style: TextStyle(fontSize: 16,),)),
+                          DataCell(Text(getLocalizedNumber('${reservation['totalCost']}'),style: TextStyle(fontSize: 16,),)),
+                          DataCell(Text(getLocalizedNumber('${reservation['amountPaid']}'),style: TextStyle(fontSize: 16,),)),
+                          DataCell(
+                            Text(
+                              getLocalizedStatus(reservation['status']!),
+                              style: TextStyle(
+                                color: getStatusColor(reservation['status']!),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              DateFormat('yyyy-MM-dd')
+                                  .format(reservation['checkInDate']),
+                              style: TextStyle(fontSize: 16,),
+                            ),
+                          ),
+                          DataCell(
+                            IconButton(
+                              icon: Icon(Icons.info),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ReservationDetailScreen(
+                                        reservation: reservation),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          DataCell(
+                            IconButton(
+                                icon: Icon(Icons.receipt),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => InvoiceScreen(
+                                        packageType: reservation['packageType'],
+                                        guestNumber: reservation['mobileNumber'],
+                                        totalNights: reservation['checkOutDate']
+                                            .difference(
+                                            reservation['checkInDate'])
+                                            .inDays,
+                                        paymentMethod:
+                                        reservation['paymentMethod'],
+                                        reservationId:
+                                        reservation['reservationId'],
+                                        invoiceNumber:
+                                        reservation['reservationId'],
+                                        guestName: reservation['guestName'],
+                                        roomType: reservation['roomType'],
+                                        roomNumber: reservation['roomNumber'],
+                                        checkInDate: reservation['checkInDate'],
+                                        checkOutDate: reservation['checkOutDate'],
+                                        amountPaid: double.tryParse(
+                                            reservation['amountPaid']) ??
+                                            0.0,
+                                        remainingBalance: double.tryParse(
+                                            reservation[
+                                            'remainingBalance']) ??
+                                            0.0,
+                                        totalCost: double.tryParse(
+                                            reservation['totalCost']) ??
+                                            0.0,
+                                        creationDate: reservation['creationDate']?? DateTime.now(),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                          ),
+                        ]);
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    };
   }
 }
 

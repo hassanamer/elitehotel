@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,7 +22,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'generated/l10n.dart';
@@ -31,14 +29,10 @@ import 'generated/l10n.dart';
 final GlobalKey<_MyAppState> myAppKey = GlobalKey<_MyAppState>();
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   await initializeFirebase();
   runApp(MyApp(key: myAppKey));
-
 }
-
-
 
 Future<void> initializeFirebase() async {
   try {
@@ -56,8 +50,6 @@ Future<void> initializeFirebase() async {
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
-
-
   // Initialize Firebase
   await Firebase.initializeApp();
 
@@ -69,31 +61,46 @@ void onStart(ServiceInstance service) async {
     }
   });
 }
+
 Future<void> checkRoomAvailability() async {
   final roomCollection = FirebaseFirestore.instance.collection('rooms');
-  final reservationCollection = FirebaseFirestore.instance.collection('reservations');
+  final reservationCollection =
+      FirebaseFirestore.instance.collection('reservations');
   DateTime now = DateTime.now();
 
   final rooms = await roomCollection.get();
   if (rooms.docs.isEmpty) return;
 
-  await Future.wait(rooms.docs.map((roomDoc) => updateRoomStatus(roomDoc.id, now, reservationCollection, roomCollection)));
+  await Future.wait(rooms.docs.map((roomDoc) => updateRoomStatus(
+      roomDoc.id, now, reservationCollection, roomCollection)));
 }
 
-Future<void> updateRoomStatus(String roomNumber, DateTime now, CollectionReference reservationCollection, CollectionReference roomCollection) async {
-  final reservations = await reservationCollection.where('roomNumber', isEqualTo: roomNumber).get();
+Future<void> updateRoomStatus(
+    String roomNumber,
+    DateTime now,
+    CollectionReference reservationCollection,
+    CollectionReference roomCollection) async {
+  final reservations = await reservationCollection
+      .where('roomNumber', isEqualTo: roomNumber)
+      .get();
   bool roomOccupied = reservations.docs.any((doc) {
     final data = doc.data() as Map<String, dynamic>?;
     final checkIn = (data?['checkInDate'] as Timestamp?)?.toDate();
     final checkOut = (data?['checkOutDate'] as Timestamp?)?.toDate();
-    return checkIn != null && checkOut != null && now.isAfter(checkIn) && now.isBefore(checkOut);
+    return checkIn != null &&
+        checkOut != null &&
+        now.isAfter(checkIn) &&
+        now.isBefore(checkOut);
   });
 
-  await roomCollection.doc(roomNumber).update({'status': roomOccupied ? 'Occupied' : 'Available'});
+  await roomCollection
+      .doc(roomNumber)
+      .update({'status': roomOccupied ? 'Occupied' : 'Available'});
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);  // Ensure the constructor accepts key
+  const MyApp({Key? key})
+      : super(key: key); // Ensure the constructor accepts key
 
   @override
   _MyAppState createState() => _MyAppState();
@@ -102,12 +109,10 @@ class MyApp extends StatefulWidget {
   static void setLocale(Locale locale) {
     myAppKey.currentState?._setLocale(locale);
   }
-
-
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale _locale = Locale('en');  // Default locale is English
+  Locale _locale = Locale('en'); // Default locale is English
 
   void _setLocale(Locale locale) {
     setState(() {
@@ -118,7 +123,8 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      locale: _locale,  // Set locale directly on MaterialApp
+      locale: _locale,
+      // Set locale directly on MaterialApp
       localizationsDelegates: [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -159,7 +165,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-
 class MainScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange; // Accept the locale change function
 
@@ -175,6 +180,8 @@ class _MainScreenState extends State<MainScreen> {
   List<int> visiblePages = [];
   String? userRole;
   Timer? periodicTimer;
+  final GlobalKey<ScaffoldState> _scaffoldKey =
+      GlobalKey<ScaffoldState>(); // Add a GlobalKey for the Scaffold
 
   @override
   void initState() {
@@ -197,14 +204,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _changeLanguage() async {
     // Use the passed function to change the locale
-    widget.onLocaleChange(
-        Localizations.localeOf(context).languageCode == 'en'
-            ? const Locale('ar', 'SA')
-            : const Locale('en', 'US')
-
-    );
-
-
+    widget.onLocaleChange(Localizations.localeOf(context).languageCode == 'en'
+        ? const Locale('ar', 'SA')
+        : const Locale('en', 'US'));
   }
 
   Future<void> initializeService() async {
@@ -216,18 +218,24 @@ class _MainScreenState extends State<MainScreen> {
           autoStart: true,
           isForegroundMode: true,
         ),
-        iosConfiguration: IosConfiguration(onForeground: onStart, onBackground: (_) => true),
+        iosConfiguration:
+            IosConfiguration(onForeground: onStart, onBackground: (_) => true),
       );
       service.startService();
     } else {
-      periodicTimer = Timer.periodic(const Duration(minutes: 1), (_) async => await checkRoomAvailability());
+      periodicTimer = Timer.periodic(const Duration(minutes: 1),
+          (_) async => await checkRoomAvailability());
     }
   }
 
   Future<void> _setupUserPages() async {
     final userEmail = FirebaseAuth.instance.currentUser?.email;
     if (userEmail != null) {
-      final userDoc = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: userEmail).limit(1).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
       if (userDoc.docs.isNotEmpty) {
         setState(() {
           userRole = userDoc.docs.first['accountType'];
@@ -302,11 +310,22 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           const Icon(Icons.hotel, color: Color(0xFFDBB017)),
           const SizedBox(width: 8),
-          Text(S.current.appTitle, style: const TextStyle(color: Color(0xFFDBB017), fontFamily: 'Amiri',fontSize: 25),),
+          Text(
+            S.current.appTitle,
+            style: const TextStyle(
+                color: Color(0xFFDBB017), fontFamily: 'Amiri', fontSize: 25),
+          ),
         ],
       ),
       backgroundColor: Colors.white,
       actions: [
+        if (screenWidth <= 600) // Check if the device is mobile
+          IconButton(
+            icon: Icon(Icons.menu),
+            onPressed: () {
+              _scaffoldKey.currentState?.openDrawer(); // Open the drawer
+            },
+          ),
         IconButton(
           icon: Icon(Icons.language),
           onPressed: () {
@@ -318,31 +337,40 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       appBar: appBar,
-
+      key: _scaffoldKey,
+      drawer: screenWidth <= 600 ? Drawer( // Only show the drawer on mobile
+        child: SideMenu(  onItemTapped: (index) {
+          _onItemTapped(index);
+          Navigator.pop(context); // Close the drawer
+        },
+          visiblePages: visiblePages,
+        ),
+      ) : null,
       body: screenWidth > 600
           ? Row(
-        children: [
-          Container(
-            width: 250,
-            color: Colors.white,
-            child: SideMenu(onItemTapped: _onItemTapped, visiblePages: visiblePages),
-          ),
-          Expanded(
-            child: pages.isNotEmpty && selectedIndex < pages.length
-                ? pages[selectedIndex]
-                : Center(child: CircularProgressIndicator()),
-          ),
-        ],
-      )
+              children: [
+                Container(
+                  width: 250,
+                  color: Colors.white,
+                  child: SideMenu(
+                      onItemTapped: _onItemTapped, visiblePages: visiblePages),
+                ),
+                Expanded(
+                  child: pages.isNotEmpty && selectedIndex < pages.length
+                      ? pages[selectedIndex]
+                      : Center(child: CircularProgressIndicator()),
+                ),
+              ],
+            )
           : Scaffold(
-
-        drawer: Drawer(
-          child: SideMenu(onItemTapped: _onItemTapped, visiblePages: visiblePages),
-        ),
-        body: pages.isNotEmpty && selectedIndex < pages.length
-            ? pages[selectedIndex]
-            : Center(child: CircularProgressIndicator()),
-      ),
+              drawer: Drawer(
+                child: SideMenu(
+                    onItemTapped: _onItemTapped, visiblePages: visiblePages),
+              ),
+              body: pages.isNotEmpty && selectedIndex < pages.length
+                  ? pages[selectedIndex]
+                  : Center(child: CircularProgressIndicator()),
+            ),
     );
   }
 }

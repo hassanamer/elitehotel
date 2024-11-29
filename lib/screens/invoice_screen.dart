@@ -453,7 +453,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                             S.current.savechanges,
                             style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -611,11 +611,10 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                     ),
                                                     pw.SizedBox(height: 10),
                                                     // Bill To section
-                                                    pw.RichText(
-                                                      text: pw.TextSpan(
+                                                    pw.Row(
                                                         children: [
-                                                          pw.TextSpan(
-                                                            text: 'Date: ',
+                                                          pw.Text(
+                                                             'Date: ',
                                                             style: pw.TextStyle(
                                                                 fontSize: 18,
                                                                 font:
@@ -624,16 +623,22 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                                                     .FontWeight
                                                                     .bold),
                                                           ),
-                                                          pw.TextSpan(
-                                                            text:
+                                                          pw.Text(
                                                                 '${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
                                                             style: pw.TextStyle(
                                                               fontSize: 18,
                                                               font: arabicFont,
                                                             ),
+                                                            textDirection: _isArabic(
+                                                                DateFormat('dd MMMM yyyy').format(DateTime.now()))
+                                                                ? pw.TextDirection
+                                                                .rtl
+                                                                : pw.TextDirection
+                                                                .ltr,
+
                                                           ),
                                                         ],
-                                                      ),
+
                                                     ),
                                                     pw.SizedBox(height: 4),
                                                     pw.Row(
@@ -1053,7 +1058,7 @@ class _InvoiceScreenState extends State<InvoiceScreen> {
                                   ),
                                   label: Text(
                                     S.current.printInvoice,
-                                    style: TextStyle(color: Colors.black),
+                                    style: TextStyle(color: Colors.black,fontSize: 16),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFDBB017),

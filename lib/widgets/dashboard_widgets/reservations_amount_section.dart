@@ -1,10 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ReservationsAmountSection extends StatefulWidget {
+  final bool showTodayOnly;
+
+  ReservationsAmountSection({this.showTodayOnly = false});
+
   @override
-  _ReservationsAmountSectionState createState() => _ReservationsAmountSectionState();
+  _ReservationsAmountSectionState createState() =>
+      _ReservationsAmountSectionState();
 }
 
 class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
@@ -25,40 +30,44 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
     DateTime todayStart = DateTime(now.year, now.month, now.day, 0, 0, 0);
     DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
     DateTime monthStart = DateTime(now.year, now.month, 1);
-
-    QuerySnapshot todaySnapshot = await _firestore.collection('reservations')
-        .where('checkInDate', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+    QuerySnapshot todaySnapshot = await _firestore
+        .collection('reservations')
+        .where('checkInDate',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
         .where('checkInDate', isLessThanOrEqualTo: Timestamp.fromDate(todayEnd))
         .get();
-
-    QuerySnapshot monthlySnapshot = await _firestore.collection('reservations')
-        .where('checkInDate', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
-        .get();
-
     double todayTotal = 0.0;
-    double monthlyTotal = 0.0;
     Map<String, double> todayPayments = {};
-    Map<String, double> monthlyPayments = {};
-
     for (var doc in todaySnapshot.docs) {
       double cost = doc['totalCost'] ?? 0.0;
       todayTotal += cost;
       String paymentMethod = doc['paymentMethod'] ?? 'Unknown';
-      todayPayments[paymentMethod] = (todayPayments[paymentMethod] ?? 0.0) + cost;
+      todayPayments[paymentMethod] =
+          (todayPayments[paymentMethod] ?? 0.0) + cost;
     }
-
-    for (var doc in monthlySnapshot.docs) {
-      double cost = doc['totalCost'] ?? 0.0;
-      monthlyTotal += cost;
-      String paymentMethod = doc['paymentMethod'] ?? 'Unknown';
-      monthlyPayments[paymentMethod] = (monthlyPayments[paymentMethod] ?? 0.0) + cost;
+    if (!widget.showTodayOnly) {
+      QuerySnapshot monthlySnapshot = await _firestore
+          .collection('reservations')
+          .where('checkInDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
+          .get();
+      double monthlyTotal = 0.0;
+      Map<String, double> monthlyPayments = {};
+      for (var doc in monthlySnapshot.docs) {
+        double cost = doc['totalCost'] ?? 0.0;
+        monthlyTotal += cost;
+        String paymentMethod = doc['paymentMethod'] ?? 'Unknown';
+        monthlyPayments[paymentMethod] =
+            (monthlyPayments[paymentMethod] ?? 0.0) + cost;
+      }
+      setState(() {
+        monthlyAmount = monthlyTotal;
+        monthlyPaymentMethods = monthlyPayments;
+      });
     }
-
     setState(() {
       todayAmount = todayTotal;
-      monthlyAmount = monthlyTotal;
       todayPaymentMethods = todayPayments;
-      monthlyPaymentMethods = monthlyPayments;
     });
   }
 
@@ -68,20 +77,19 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
       margin: const EdgeInsets.all(16.0),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              S.current.reservationsamount,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            S.current.reservationsamount,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
             ),
-            const SizedBox(height: 16),
-            _buildAmountCard(S.current.todayreservations, todayAmount),
-            const SizedBox(height: 8),
+          ),
+          const SizedBox(height: 16),
+          _buildAmountCard(S.current.todayreservations, todayAmount),
+          const SizedBox(height: 8),
+          if (!widget.showTodayOnly) ...[
             _buildAmountCard(S.current.monthreservations, monthlyAmount),
             const SizedBox(height: 16),
             Text(
@@ -102,7 +110,9 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
               ),
             ),
             const SizedBox(height: 8),
-            ...todayPaymentMethods.entries.map((entry) => _buildAmountCard('${entry.key}', entry.value)).toList(),
+            ...todayPaymentMethods.entries
+                .map((entry) => _buildAmountCard('${entry.key}', entry.value))
+                .toList(),
             const SizedBox(height: 16),
             Text(
               S.current.monthlypaymentmethods,
@@ -113,12 +123,28 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
               ),
             ),
             const SizedBox(height: 8),
-            ...monthlyPaymentMethods.entries.map((entry) => _buildAmountCard('${entry.key}', entry.value)).toList(),
+            ...monthlyPaymentMethods.entries
+                .map((entry) => _buildAmountCard('${entry.key}', entry.value))
+                .toList(),
+          ] else ...[
+            Text(
+              S.current.todayspaymentmethods,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...todayPaymentMethods.entries
+                .map((entry) => _buildAmountCard('${entry.key}', entry.value))
+                .toList(),
           ],
-        ),
+        ]),
       ),
     );
   }
+
   Widget _buildAmountCard(String title, double amount) {
     return Card(
       color: Colors.white,
