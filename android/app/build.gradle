@@ -8,7 +8,9 @@ plugins {
 dependencies {
     // Import the Firebase BoM
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
-
+    implementation 'com.google.android.gms:play-services-location:18.0.0'
+    implementation 'com.google.firebase:firebase-auth:21.0.1'
+    implementation 'com.google.firebase:firebase-firestore:24.0.1'
 
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies

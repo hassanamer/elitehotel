@@ -1,63 +1,30 @@
-import 'package:flutter/material.dart';
+// lib/widgets/dashboard_widgets/overview_section.dart
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
-class OverviewSection extends StatefulWidget {
-  @override
-  _OverviewSectionState createState() => _OverviewSectionState();
-}
+class OverviewSection extends StatelessWidget {
+  final int checkInsToday;
+  final int checkOutsToday;
+  final int totalRooms;
+  final int availableRooms;
+  final int occupiedRooms;
 
-class _OverviewSectionState extends State<OverviewSection> {
-  int checkInsToday = 0;
-  int checkOutsToday = 0;
-  int totalRooms = 0;
-  int availableRooms = 0;
-  int occupiedRooms = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchOverviewData();
-  }
-
-  Future<void> fetchOverviewData() async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
-
-    // Fetch room data
-    try {
-      QuerySnapshot roomSnapshot = await FirebaseFirestore.instance.collection('rooms').get();
-      totalRooms = roomSnapshot.docs.length;
-      availableRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
-      occupiedRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Occupied').length;
-    } catch (e) {
-      print("Error fetching rooms: $e");
-    }
-
-    // Fetch reservations data
-    try {
-      QuerySnapshot reservationSnapshot = await FirebaseFirestore.instance
-          .collection('reservations')
-          .where('checkInDate', isGreaterThanOrEqualTo: startOfDay)
-          .where('checkInDate', isLessThanOrEqualTo: endOfDay)
-          .get();
-      checkInsToday = reservationSnapshot.docs.length;
-
-      QuerySnapshot checkOutSnapshot = await FirebaseFirestore.instance
-          .collection('reservations')
-          .where('checkOutDate', isGreaterThanOrEqualTo: startOfDay)
-          .where('checkOutDate', isLessThanOrEqualTo: endOfDay)
-          .get();
-      checkOutsToday = checkOutSnapshot.docs.length;
-    } catch (e) {
-      print("Error fetching reservations: $e");
-    }
-
-    setState(() {});
-  }
+  const OverviewSection({
+    Key? key,
+    required this.checkInsToday,
+    required this.checkOutsToday,
+    required this.totalRooms,
+    required this.availableRooms,
+    required this.occupiedRooms,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
@@ -65,8 +32,8 @@ class _OverviewSectionState extends State<OverviewSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Overview',
+            Text(
+              S.current.overview,
               style: TextStyle(
                 fontSize: 20,
                 color: Colors.black,
@@ -74,14 +41,38 @@ class _OverviewSectionState extends State<OverviewSection> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
+            screenWidth > 600 &&
+                (kIsWeb ||
+                    Platform.isWindows ||
+                    Platform.isLinux ||
+                    Platform.isMacOS)
+                ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildOverviewColumn("Today's\nCheck-ins", checkInsToday),
-                _buildOverviewColumn("Today's\nCheck-outs", checkOutsToday),
-                _buildOverviewColumn("Total\nIn Hotel", occupiedRooms + availableRooms),
-                _buildOverviewColumn("Total\nAvailable Rooms", availableRooms),
-                _buildOverviewColumn("Total\nOccupied Rooms", occupiedRooms),
+                _buildOverviewColumn(
+                    screenWidth, S.current.todaysCheckIns, checkInsToday),
+                _buildOverviewColumn(screenWidth,
+                    S.current.todaysCheckOuts, checkOutsToday),
+                _buildOverviewColumn(screenWidth, S.current.totalInHotel,
+                    totalRooms),
+                _buildOverviewColumn(screenWidth,
+                    S.current.totalAvailableRooms, availableRooms),
+                _buildOverviewColumn(screenWidth,
+                    S.current.totalOccupiedRooms, occupiedRooms),
+              ],
+            )
+                : Column(
+              children: [
+                _buildOverviewCardMobile(
+                    S.current.todaysCheckInsMobile, checkInsToday),
+                _buildOverviewCardMobile(
+                    S.current.todaysCheckOutsMobile, checkOutsToday),
+                _buildOverviewCardMobile(S.current.totalInHotelMobile,
+                    occupiedRooms + availableRooms),
+                _buildOverviewCardMobile(
+                    S.current.totalAvailableRoomsMobile, availableRooms),
+                _buildOverviewCardMobile(
+                    S.current.totalOccupiedRoomsMobile, occupiedRooms),
               ],
             ),
           ],
@@ -90,9 +81,10 @@ class _OverviewSectionState extends State<OverviewSection> {
     );
   }
 
-  Column _buildOverviewColumn(String title, int value) {
+  Widget _buildOverviewColumn(double screenWidth, String title, int value) {
     final titleLines = title.split('\n');
 
+    // Desktop and Web layout (wide screens)
     return Column(
       children: [
         Row(
@@ -135,15 +127,46 @@ class _OverviewSectionState extends State<OverviewSection> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color:  Color(0xFFDBB017),
+                      color: Color(0xFFDBB017),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-        )
+        ),
       ],
+    );
+  }
+
+  Widget _buildOverviewCardMobile(String title, int value) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              value.toString(),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFDBB017),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

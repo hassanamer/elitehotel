@@ -1,10 +1,13 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:elitehotel/screens/invoice_screen.dart';
+import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/screens/reservationslist.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+
+import 'invoice_screen.dart';
 
 class ReservationScreen extends StatefulWidget {
   @override
@@ -16,9 +19,21 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final TextEditingController _adultsController = TextEditingController();
   final TextEditingController _childrenController = TextEditingController();
   final TextEditingController _amountPaidController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController(); // Notes controller
-
-
+  final TextEditingController _nationalityController = TextEditingController();
+  final TextEditingController _jobController = TextEditingController();
+  final TextEditingController _nationalIdController = TextEditingController();
+  final TextEditingController _mobileNumberController = TextEditingController();
+  final TextEditingController _guestAddressController = TextEditingController();
+  final TextEditingController _notesController =
+      TextEditingController(); // Notes controller
+  String?
+      _selectedPaymentMethod; // Variable to hold the selected payment method
+  final Map<String, String> _paymentMethodsMap = {
+    S.current.cash: 'Cash',
+    S.current.bank: 'Bank',
+    S.current.visa: 'Visa',
+    S.current.instapay: 'Instapay',
+  }; // List of payment methods
 
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
@@ -26,54 +41,70 @@ class _ReservationScreenState extends State<ReservationScreen> {
   double _totalCost = 0.0;
   double _remainingBalance = 0.0;
   String _noteFrequency = 'Just Once'; // Default note frequency
-
+  List<String> _packages = []; // List to hold package names
+  String? _selectedPackage;
   final List<String> _roomTypes = ['Room', 'Suite', 'Mini Suite'];
   String? _selectedRoomType;
   String? _assignedRoomNumber; // To store the assigned room number
+  late DateTime creationDate;
+  List<String> _availableRooms = [];
+  final TextInputFormatter _englishNumberFormatter = FilteringTextInputFormatter.allow(RegExp(r'[0-9]'));
+  final Map<String, String> _packageTranslations = {
+    'Room (Egyptian)': 'غرفة (مصري)',
+    'Room (Electronic warefare)': 'غرفة (حرب إلك)',
+    'Room (Military)': 'غرفة (عسكري)',
+    'Room (Foriegns)': 'غرفة (أجنبي)',
+    'Mini Suite (Egyptian)': 'ميني سويت (مصري)',
+    'Mini Suite (Electronic warefare)': 'ميني سويت (حرب إلك)',
+    'Mini Suite (Military)': 'ميني سويت (عسكري)',
+    'Mini Suite (Foriegns)': 'ميني سويت (أجنبي)',
+    'Suite (Egyptian)': 'سويت (مصري)',
+    'Suite (Electonice warefare)': 'سويت (حرب إلك)',
+    'Suite (Military)': 'سويت (عسكري)',
+    'Suite (Foriegns)': 'سويت (أجنبي)',
+    'Wedding Extra Suite[Egp]': 'سويت فرح اضافي(مصري)',
+    'Wedding Extra Suite[Foriegn]': 'سويت فرح اضافي(اجنبي)',
+    'Wedding Extra R[Foriegn]': 'غرفة فرح اضافية(اجنبي)',
+    'Wedding Extra R[Egp]': 'غرفة فرح اضافية(مصري)',
+    'Wedding Package Akasia': 'باكيدج قاعة أكاسيا',
+    'Wedding Package solitaire': 'باكيدج قاعة سولتير',
 
-  void _calculateTotalCost() {
-    if (_checkInDate != null && _checkOutDate != null && _rate > 0) {
-      int days = _checkOutDate!.difference(_checkInDate!).inDays;
+  };
+  // Function to translate package names to Arabic
+  String _translatePackageName(String packageName) {
+    if (Localizations.localeOf(context).languageCode == 'ar') {
+      return _packageTranslations[packageName] ?? packageName; // Use original if no translation
+    }
+    return packageName; // Return the original if the locale is not Arabic
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPackages();
+  }
+
+  Future<void> _fetchPackages() async {
+    try {
+      QuerySnapshot snapshot =
+          await FirebaseFirestore.instance.collection('rates').get();
       setState(() {
-        _totalCost = days * _rate;
-        _remainingBalance = _totalCost - (double.tryParse(_amountPaidController.text) ?? 0.0);
+        _packages = snapshot.docs
+            .map((doc) => doc.id)
+            .toList(); // Assuming package names are the document IDs
       });
+    } catch (e) {
+      print("Error fetching packages: $e");
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
-    DateTime initialDate = isCheckIn ? DateTime.now() : _checkInDate ?? DateTime.now();
-    DateTime firstDate = DateTime.now();
-    DateTime lastDate = DateTime.now().add(Duration(days: 365));
-
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-    );
-    if (picked != null) {
-      setState(() {
-        if (isCheckIn) {
-          _checkInDate = picked;
-          if (_checkOutDate != null && _checkOutDate!.isBefore(_checkInDate!)) {
-            _checkOutDate = _checkInDate;
-          }
-        } else {
-          _checkOutDate = picked;
-        }
-      });
-      _calculateTotalCost();
-    }
-  }
-
-  Future<void> _fetchRate() async {
-    if (_selectedRoomType == null) return;
+  void _fetchRate() async {
+    if (_selectedPackage == null) return; // Check if a package is selected
 
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection('rates')
-          .doc(_selectedRoomType)
+          .doc(_selectedPackage) // Fetch rate based on selected package
           .get();
       if (doc.exists) {
         setState(() {
@@ -88,84 +119,181 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
   }
 
+  void _calculateTotalCost() {
+    if (_checkInDate != null && _checkOutDate != null && _rate > 0) {
+      int days = _checkOutDate!.difference(_checkInDate!).inDays;
+      setState(() {
+        _totalCost = days * _rate;
+        _remainingBalance =
+            _totalCost - (double.tryParse(_amountPaidController.text) ?? 0.0);
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
+    DateTime initialDate =
+        isCheckIn ? DateTime.now() : _checkInDate ?? DateTime.now();
+    DateTime firstDate = DateTime.now();
+    DateTime lastDate = DateTime.now().add(Duration(days: 365));
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isCheckIn) {
+          _checkInDate = picked;
+          print("Check-In Date Selected: $_checkInDate");
+          if (_checkOutDate != null && _checkOutDate!.isBefore(_checkInDate!)) {
+            _checkOutDate = _checkInDate;
+          }
+        } else {
+          _checkOutDate = picked;
+          print("Check-Out Date Selected: $_checkOutDate");
+
+        }
+      });
+      _calculateTotalCost();
+      // Fetch available rooms only when both dates are selected
+      if (_checkInDate != null && _checkOutDate != null) {
+        _fetchAvailableRooms();
+      }
+    }
+  }
+
+  Future<void> _fetchAvailableRooms() async {
+    if (_selectedRoomType == null || _checkInDate == null || _checkOutDate == null) {
+      print("Missing required fields: RoomType, CheckInDate, or CheckOutDate is null.");
+      return;
+    }
+
+    try {
+      // Step 1: Fetch all rooms of the selected type
+      print("Fetching available rooms for:");
+      print("Room Type: $_selectedRoomType");
+      print("Check-In Date: $_checkInDate");
+      print("Check-Out Date: $_checkOutDate");      QuerySnapshot roomSnapshot = await FirebaseFirestore.instance
+          .collection('rooms')
+          .where('roomType', isEqualTo: _selectedRoomType)
+          .get();
+
+      List<String> allRoomNumbers = roomSnapshot.docs.map((doc) => doc['roomNumber'].toString()).toList();
+      print("Fetched rooms: $allRoomNumbers");
+
+      // Step 2: Fetch reservations that overlap with the selected dates
+      print("Fetching reservations overlapping with dates: $_checkInDate to $_checkOutDate");
+      QuerySnapshot reservationSnapshot = await FirebaseFirestore.instance
+          .collection('reservations')
+          .where('roomType', isEqualTo: _selectedRoomType)
+          .where('checkInDate', isLessThan: _checkOutDate) // Overlap condition 1
+          .where('checkOutDate', isGreaterThan: _checkInDate) // Overlap condition 2
+          .get();
+
+      List<String> reservedRoomNumbers = reservationSnapshot.docs.map((doc) {
+        print("Reserved Room: ${doc['roomNumber']} from ${doc['checkInDate']} to ${doc['checkOutDate']}");
+        return doc['roomNumber'].toString();
+      }).toList();
+
+      print("Reserved rooms during the selected dates: $reservedRoomNumbers");
+
+      // Step 3: Filter available rooms by excluding reserved rooms
+      setState(() {
+        _availableRooms = allRoomNumbers
+            .where((roomNumber) => !reservedRoomNumbers.contains(roomNumber))
+            .toList();
+      });
+
+      print("Available rooms after filtering: $_availableRooms");
+    } catch (e) {
+      print("Error fetching available rooms: $e");
+    }
+  }
+
+
   bool _validateInputs() {
     if (_guestNameController.text.isEmpty) {
-      _showError('Please enter the guest name.');
+      _showError(S.current.enterGuestName);
       return false;
     }
     if (_selectedRoomType == null) {
-      _showError('Please select a room type.');
+      _showError(S.current.selectRoomType);
       return false;
     }
-    if (_adultsController.text.isEmpty || int.tryParse(_adultsController.text) == null || int.parse(_adultsController.text) <= 0) {
-      _showError('Please enter a valid number of adults.');
+    if (_adultsController.text.isEmpty ||
+        int.tryParse(_adultsController.text) == null ||
+        int.parse(_adultsController.text) <= 0) {
+      _showError(S.current.enterNumOfAdults);
       return false;
     }
     if (_checkInDate == null) {
-      _showError('Please select a check-in date.');
+      _showError(S.current.pleaseCheckinDate);
       return false;
     }
     if (_checkOutDate == null) {
-      _showError('Please select a check-out date.');
+      _showError(S.current.pleaseCheckoutDate);
       return false;
     }
     if (_checkOutDate!.isBefore(_checkInDate!)) {
-      _showError('Check-out date must be after check-in date.');
+      _showError(S.current.pleaseCheckoutDateafter);
       return false;
     }
-    if (_amountPaidController.text.isEmpty || double.tryParse(_amountPaidController.text) == null || double.parse(_amountPaidController.text) < 0) {
-      _showError('Please enter a valid amount paid.');
+    if (_amountPaidController.text.isEmpty ||
+        double.tryParse(_amountPaidController.text) == null ||
+        double.parse(_amountPaidController.text) < 0) {
+      _showError(S.current.pleaseamountpaid);
       return false;
     }
     return true;
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _assignRoom() async {
-    if (_selectedRoomType == null) return;
-
-    try {
-      QuerySnapshot availableRooms = await FirebaseFirestore.instance
-          .collection('rooms')
-          .where('roomType', isEqualTo: _selectedRoomType)
-          .where('status', isEqualTo: 'Available')
-          .limit(1)
-          .get();
-
-      if (availableRooms.docs.isNotEmpty) {
-        setState(() {
-          _assignedRoomNumber = availableRooms.docs.first['roomNumber'];
-        });
-      } else {
-        _showError('No available rooms of this type');
-        _assignedRoomNumber = null; // Reset assigned room number if none available
-      }
-    } catch (e) {
-      print("Error assigning room: $e");
-    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _createReservation() async {
-    if (!_validateInputs() || _assignedRoomNumber == null) {
+    creationDate = DateTime.now(); // Initialize creationDate here
+    String? englishPaymentMethod = _paymentMethodsMap[_selectedPaymentMethod];
+    if (!_validateInputs() ||
+        _assignedRoomNumber == null ||
+        _selectedRoomType == null) {
       return; // Don't proceed if validation fails or no room is assigned
     }
 
     try {
-      // Fetch the current maximum reservationId
-      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('reservations').orderBy('reservationId', descending: true).limit(1).get();
-      int newReservationId = 1; // Default value
+      // Generate a unique reservation ID
+      int newReservationId = Random().nextInt(900000) + 100000;
 
-      if (snapshot.docs.isNotEmpty) {
-        newReservationId = (snapshot.docs.first['reservationId'] as int) + 1; // Increment the max reservationId
+      // Check if reservationId already exists to avoid duplicates
+      bool exists = await FirebaseFirestore.instance
+          .collection('reservations')
+          .where('reservationId', isEqualTo: newReservationId)
+          .get()
+          .then((snapshot) => snapshot.docs.isNotEmpty);
+
+      if (exists) {
+        // Retry to get a unique ID if duplicate is found
+        newReservationId = Random().nextInt(900000) + 100000;
       }
+      String englishStatus = _noteFrequency == S.current.justOnce ? 'Just Once' : 'Daily';
 
-      // Create reservation document
-      await FirebaseFirestore.instance.collection('reservations').add({
-        'reservationId': newReservationId, // Add the unique reservation ID
+      // Calculate total nights
+      int totalNights = _checkOutDate!.difference(_checkInDate!).inDays;
+      // Create reservation document with additional guest details
+      await FirebaseFirestore.instance
+          .collection('reservations')
+          .doc(newReservationId.toString()) // Set the document ID
+          .set({
+        'reservationId': newReservationId,
         'guestName': _guestNameController.text,
+        'guestAddress': _guestAddressController.text,
+        'mobileNumber': _mobileNumberController.text,
+        'nationalId': _nationalIdController.text,
+        'job': _jobController.text,
+        'nationality': _nationalityController.text,
         'roomType': _selectedRoomType,
         'roomNumber': _assignedRoomNumber,
         'adults': int.tryParse(_adultsController.text) ?? 1,
@@ -175,85 +303,88 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'amountPaid': double.tryParse(_amountPaidController.text) ?? 0.0,
         'totalCost': _totalCost,
         'remainingBalance': _remainingBalance,
+        'packageType': _selectedPackage, // Include packageType here
+        'paymentMethod': englishPaymentMethod,
         'notes': {
-          'text': _notesController.text, // Add the note text to the reservation
-          'frequency': _noteFrequency, // Add the frequency of the note (Just Once or Daily)
+          'text': _notesController.text,
+          'frequency': englishStatus,
+          'status': 'Pending',
         },
+        'creationDate': creationDate,
       });
 
-      // Update room status and current guest
-      await FirebaseFirestore.instance.collection('rooms').doc(_assignedRoomNumber).update({
+// Add notes to a separate 'notes' collection with check-in and check-out dates
+      await FirebaseFirestore.instance
+          .collection('notes')
+          .doc(newReservationId
+              .toString()) // Set the document ID to reservationId
+          .set({
+        'reservationId': newReservationId,
+        'guestName': _guestNameController.text,
+        'text': _notesController.text,
+        'frequency': englishStatus,
+        'room': _assignedRoomNumber,
+        'status': 'Pending',
+        'checkInDate': _checkInDate,
+        'checkOutDate': _checkOutDate,
+        'creationDate': creationDate,
+      });
+
+      // Update room status and assign current guest
+      await FirebaseFirestore.instance
+          .collection('rooms')
+          .doc(_assignedRoomNumber)
+          .update({
         'status': 'Occupied',
         'currentGuest': _guestNameController.text,
       });
 
-      // Debug prints to verify the values before showing the invoice
-      print('Guest Name: ${_guestNameController.text}');
-      print('Room Type: $_selectedRoomType');
-      print('Room Number: $_assignedRoomNumber');
-      print('Check-In Date: ${_checkInDate != null ? DateFormat('yyyy-MM-dd').format(_checkInDate!) : 'N/A'}');
-      print('Check-Out Date: ${_checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : 'N/A'}');
-      print('Total Cost: $_totalCost');
-      print('Amount Paid: ${_amountPaidController.text}');
-      print('Remaining Balance: $_remainingBalance');
-
-      // Show invoice preview
-      // _showInvoicePreview();
-
-      // Reset form fields to ensure they are ready for the next reservation
-      _resetForm();
-
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reservation created successfully!')),
+        SnackBar(content: Text(S.current.reservationSuccess)),
       );
+
+      // Navigate to invoice preview with updated data
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => InvoiceScreen(
+            packageType: _selectedPackage,
+            totalNights: totalNights,
+            paymentMethod: _selectedPaymentMethod,
+            invoiceNumber: newReservationId,
+            guestName: _guestNameController.text,
+            reservationId: newReservationId,
+            roomType: _selectedRoomType ?? 'N/A',
+            roomNumber: _assignedRoomNumber ?? 'N/A',
+            checkInDate: _checkInDate ?? DateTime.now(),
+            checkOutDate: _checkOutDate ?? DateTime.now(),
+            amountPaid: double.tryParse(_amountPaidController.text) ?? 0.0,
+
+            remainingBalance: _remainingBalance,
+            totalCost: _totalCost,
+            creationDate: creationDate,
+            // guestAddress: _guestAddressController.text,
+            guestNumber: _mobileNumberController.text,
+            // nationalId: _nationalIdController.text,
+            // job: _jobController.text,
+            // nationality: _nationalityController.text,
+          ),
+        ),
+      ).then((_) {
+        // Reset form after returning from InvoiceScreen
+        _resetForm();
+      });
     } catch (e) {
       print("Error creating reservation: $e");
     }
   }
 
-
-  // void _showInvoicePreview() {
-  //   Navigator.of(context).push(MaterialPageRoute(
-  //     builder: (context) => InvoiceScreen(
-  //       guestName: _guestNameController.text,
-  //       roomType: _selectedRoomType!,
-  //       roomNumber: _assignedRoomNumber!,
-  //       checkInDate: _checkInDate!,
-  //       checkOutDate: _checkOutDate!,
-  //       totalCost: _totalCost,
-  //       amountPaid: double.tryParse(_amountPaidController.text) ?? 0.0,
-  //       remainingBalance: _remainingBalance,
-  //     ),
-  //   ));
-  // }
-  //
-  // void _generateInvoice() async {
-  //   final pdf = pw.Document();
-  //
-  //   pdf.addPage(
-  //     pw.Page(
-  //       build: (pw.Context context) {
-  //         return pw.Column(
-  //           children: [
-  //             pw.Text('Invoice', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-  //             pw.SizedBox(height: 20),
-  //             pw.Text('Guest Name: ${_guestNameController.text}'),
-  //             pw.Text('Room Type: $_selectedRoomType'),
-  //             pw.Text('Room Number: $_assignedRoomNumber'),
-  //             pw.Text('Check-In Date: ${_checkInDate != null ? DateFormat('yyyy-MM-dd').format(_checkInDate!) : 'N/A'}'),
-  //             pw.Text('Check-Out Date: ${_checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : 'N/A'}'),
-  //             pw.Text('Total Cost: \$${_totalCost.toStringAsFixed(2)}'),
-  //             pw.Text('Amount Paid: \$${_amountPaidController.text}'),
-  //             pw.Text('Remaining Balance: \$${_remainingBalance.toStringAsFixed(2)}'),
-  //           ],
-  //         );
-  //       },
-  //     ),
-  //   );
-  //
-  //   // Save the PDF and prompt the user to print or download
-  //   await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  // }
+// Define frequency options with keys and localized values
+  final noteFrequencyOptions = {
+    'justOnce': S.current.justOnce,
+    'daily': S.current.daily,
+  };
 
   void _resetForm() {
     setState(() {
@@ -269,230 +400,785 @@ class _ReservationScreenState extends State<ReservationScreen> {
       _totalCost = 0.0;
       _remainingBalance = 0.0;
       _notesController.clear(); // Clear notes field
-
     });
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
+    final List<String> _localizedPaymentMethods =
+        _paymentMethodsMap.keys.toList();
+
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Reservation'),
+        title: Text(S.current.reservations),
         backgroundColor: const Color(0xFFDBB017),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _guestNameController,
-                decoration: InputDecoration(
-                  labelText: 'Guest Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _selectedRoomType,
-                items: _roomTypes.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                decoration: InputDecoration(
-                  labelText: 'Room Type',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedRoomType = value;
-                  });
-                  _fetchRate();
-                  _assignRoom();
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _adultsController,
+      body: (screenWidth > 600)
+          ? SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _guestNameController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Adults',
+                        labelText: S.current.guestName,
                         border: OutlineInputBorder(),
                       ),
-                      keyboardType: TextInputType.number,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _childrenController,
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _guestAddressController,
                       decoration: InputDecoration(
-                        labelText: 'Number of Children',
+                        labelText: S.current.guestAddress,
                         border: OutlineInputBorder(),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _mobileNumberController,
+                      decoration: InputDecoration(
+                        labelText: S.current.mobileNumber,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [_englishNumberFormatter], // Apply formatter
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalIdController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationalId,
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLength: 14,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [_englishNumberFormatter], // Apply formatter
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ListTile(
-                      title: Text(
-                        _checkInDate == null
-                            ? 'Check-In Date'
-                            : DateFormat('yyyy-MM-dd').format(_checkInDate!),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _jobController,
+                      decoration: InputDecoration(
+                        labelText: S.current.job,
+                        border: OutlineInputBorder(),
                       ),
-                      trailing: Icon(Icons.calendar_today),
-                      onTap: () => _selectDate(context, true),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ListTile(
-                      title: Text(
-                        _checkOutDate == null
-                            ? 'Check-Out Date'
-                            : DateFormat('yyyy-MM-dd').format(_checkOutDate!),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalityController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationality,
+                        border: OutlineInputBorder(),
                       ),
-                      trailing: Icon(Icons.calendar_today),
-                      onTap: () => _selectDate(context, false),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _amountPaidController,
-                decoration: InputDecoration(
-                  labelText: 'Amount Paid',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) => _calculateTotalCost(),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _notesController,
-                decoration: InputDecoration(labelText: 'Notes (e.g., breakfast request)'),
-              ),
-              DropdownButton<String>(
-                value: _noteFrequency,
-                items: <String>['Just Once', 'Daily'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _noteFrequency = newValue!;
-                  });
-                },
-                hint: Text('Select Note Frequency'),
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total Cost: \$${_totalCost.toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Remaining: \$${_remainingBalance.toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _createReservation,
-                child: Text('Create Reservation'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDBB017)),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: MediaQuery.of(context).size.width,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('reservations').snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    final reservations = snapshot.data!.docs;
-
-                    return DataTable(
-                      headingRowColor: MaterialStateColor.resolveWith(
-                              (states) => const Color(0xFFDBB017)),
-                      columnSpacing: 12.0,
-                      horizontalMargin: 12.0,
-                      columns: const [
-                        DataColumn(label: Text('ReservationId', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Guest Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Room Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Room Number', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Check-In', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Check-Out', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Total Cost', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Remaining', style: TextStyle(fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Notes')), // New column for notes
-                      ],
-                      rows: reservations.map((reservation) {
-                        return DataRow(
-                          cells: [
-                            DataCell(Text(reservation['reservationId'].toString() ?? 'N/A')),
-                            DataCell(Text(reservation['guestName'] ?? 'N/A')),
-                            DataCell(Text(reservation['roomType'] ?? 'N/A')),
-                            DataCell(Text(reservation['roomNumber'] ?? 'N/A')),
-                            DataCell(Text(
-                              DateFormat('yyyy-MM-dd').format(
-                                  (reservation['checkInDate'] as Timestamp).toDate()),
-                            )),
-                            DataCell(Text(
-                              DateFormat('yyyy-MM-dd').format(
-                                  (reservation['checkOutDate'] as Timestamp).toDate()),
-                            )),
-                            DataCell(Text('\$${reservation['totalCost'].toString()}')),
-                            DataCell(Text(
-                              '\$${reservation['remainingBalance'].toString()}',
-                              style: TextStyle(color: Colors.red),
-                            )),
-                            DataCell(Text(
-                                '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})'
-                            )), // Show notes with frequency
-
-                          ],
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPackage,
+                      items: _packages.map((package) {
+                        return DropdownMenuItem(
+                          value: package,
+                          child: Text(_translatePackageName(package)),
                         );
                       }).toList(),
-                    );
-                  },
+                      decoration: InputDecoration(
+                        labelText: S.current.selectPackage,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPackage = value;
+                        });
+                        _fetchRate(); // Fetch rate based on selected package
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRoomType,
+                      items: _roomTypes.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.roomType,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRoomType = value;
+                          _assignedRoomNumber =
+                              null; // Reset selected room number
+                          _availableRooms = []; // Clear available rooms list
+                        });
+                        print("Selected Room Type: $_selectedRoomType");
+                        _fetchAvailableRooms(); // Fetch available rooms for the selected type Fetch available rooms for the selected type
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: S.current.availableroom,
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _assignedRoomNumber,
+                      items: _availableRooms.map((roomNumber) {
+                        return DropdownMenuItem(
+                          value: roomNumber,
+                          child: Center(child: Text(roomNumber)),
+                        );
+                      }).toList(),
+                      onChanged: (roomNumber) {
+                        setState(() {
+                          _assignedRoomNumber = roomNumber;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _adultsController,
+                            decoration: InputDecoration(
+                              labelText: S.current.numberOfAdults,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [_englishNumberFormatter], // Apply formatter
+                            onChanged: (value) {
+                              setState(() {
+                                _adultsController.text = getLocalizedNumber(value);
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _childrenController,
+                            decoration: InputDecoration(
+                              labelText: S.current.numberOfChildren,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [_englishNumberFormatter], // Apply formatter
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ListTile(
+                            title: Text(
+                              _checkInDate == null
+                                  ? S.current.checkInDate
+                                  : DateFormat('yyyy-MM-dd')
+                                      .format(_checkInDate!),
+                            ),
+                            trailing: Icon(Icons.calendar_today),
+                            onTap: () => _selectDate(context, true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ListTile(
+                            title: Text(
+                              _checkOutDate == null
+                                  ? S.current.checkOutDate
+                                  : DateFormat('yyyy-MM-dd')
+                                      .format(_checkOutDate!),
+                            ),
+                            trailing: Icon(Icons.calendar_today),
+                            onTap: () => _selectDate(context, false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _amountPaidController,
+                      decoration: InputDecoration(
+                        labelText: S.current.amountPaid,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [_englishNumberFormatter], // Apply formatter
+                      onChanged: (value) {
+                        // Only update the total cost calculation
+                        _calculateTotalCost();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPaymentMethod,
+                      items: _localizedPaymentMethods.map((method) {
+                        return DropdownMenuItem(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.paymenMethod,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPaymentMethod = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _notesController,
+                      decoration: InputDecoration(
+                        labelText: S.current.notesBreakfast,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: S.current.selectNoteFrequency,
+                        // Add localization if needed
+                        border: OutlineInputBorder(),
+                      ),
+                      value: noteFrequencyOptions.keys.contains(_noteFrequency)
+                          ? _noteFrequency
+                          : null,
+                      // Set to null if _noteFrequency is not in the options
+                      items: noteFrequencyOptions.keys.map((key) {
+                        return DropdownMenuItem<String>(
+                          value: key,
+                          child: Text(noteFrequencyOptions[key]!),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _noteFrequency = newValue!;
+                        });
+                      },
+                      hint: Text(S.current.selectNoteFrequency),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Text(
+                          '${S.current.totalCost}: ${getLocalizedNumber(_totalCost.toStringAsFixed(2))} LE ',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${S.current.remainingBalanceLabel}: ${getLocalizedNumber(_remainingBalance.toStringAsFixed(2))} LE',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _createReservation,
+                      child: Text(S.current.createReservation),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDBB017)),
+                    ),
+                    const SizedBox(height: 20),
+
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _guestNameController,
+                      decoration: InputDecoration(
+                        labelText: S.current.guestName,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _guestAddressController,
+                      decoration: InputDecoration(
+                        labelText: S.current.guestAddress,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _mobileNumberController,
+                      decoration: InputDecoration(
+                        labelText: S.current.mobileNumber,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalIdController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationalId,
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLength: 14,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _jobController,
+                      decoration: InputDecoration(
+                        labelText: S.current.job,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _nationalityController,
+                      decoration: InputDecoration(
+                        labelText: S.current.nationality,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPackage,
+                      items: _packages.map((package) {
+                        return DropdownMenuItem(
+                          value: package,
+                          child: Text(package),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.selectPackage,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPackage = value;
+                        });
+                        _fetchRate(); // Fetch rate based on selected package
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRoomType,
+                      items: _roomTypes.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.roomType,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRoomType = value!;
+                          _assignedRoomNumber =
+                              null; // Reset selected room number
+                          _availableRooms = []; // Clear available rooms list
+                        });
+                        _fetchRate();
+                        _fetchAvailableRooms(); // Fetch available rooms for the selected type
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: S.current.availableroom,
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _assignedRoomNumber,
+                      items: _availableRooms.map((roomNumber) {
+                        return DropdownMenuItem(
+                          value: roomNumber,
+                          child: Center(child: Text(roomNumber)),
+                        );
+                      }).toList(),
+                      onChanged: (roomNumber) {
+                        setState(() {
+                          _assignedRoomNumber = roomNumber;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _adultsController,
+                            decoration: InputDecoration(
+                              labelText: S.current.numberOfAdults,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _childrenController,
+                            decoration: InputDecoration(
+                              labelText: S.current.numberOfChildren,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _amountPaidController,
+                      decoration: InputDecoration(
+                        labelText: S.current.amountPaidLabel,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) => _calculateTotalCost(),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedPaymentMethod,
+                      items: _localizedPaymentMethods.map((method) {
+                        return DropdownMenuItem(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      decoration: InputDecoration(
+                        labelText: S.current.paymenMethod,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPaymentMethod = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _notesController,
+                      decoration:
+                          InputDecoration(labelText: S.current.notesBreakfast),
+                    ),
+                    DropdownButton<String>(
+                      // Ensure _noteFrequency is a valid key or fall back to 'justOnce'
+                      value: noteFrequencyOptions.containsKey(_noteFrequency)
+                          ? _noteFrequency
+                          : 'justOnce',
+                      items: noteFrequencyOptions.keys.map((key) {
+                        return DropdownMenuItem<String>(
+                          value: key, // Use the key as the value
+                          child: Text(noteFrequencyOptions[
+                              key]!), // Display the localized text
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _noteFrequency =
+                              newValue!; // Update with the key only
+                        });
+                      },
+                      hint: Text(S.current.selectNoteFrequency),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${S.current.totalCost}: \$${_totalCost.toStringAsFixed(2)}',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '${S.current.remainingBalance}: \$${_remainingBalance.toStringAsFixed(2)}',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _createReservation,
+                      child: Text(S.current.createReservation),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDBB017)),
+                    ),
+                    const SizedBox(height: 20),
+                    // Container(
+                    //   width: MediaQuery.of(context).size.width,
+                    //   padding: const EdgeInsets.all(12),
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.white,
+                    //     borderRadius: BorderRadius.circular(12),
+                    //     boxShadow: const [
+                    //       BoxShadow(
+                    //         color: Colors.black12,
+                    //         blurRadius: 10,
+                    //         offset: Offset(0, 4),
+                    //       ),
+                    //     ],
+                    //   ),
+                    //   child: StreamBuilder<QuerySnapshot>(
+                    //     stream: FirebaseFirestore.instance
+                    //         .collection('reservations')
+                    //         .snapshots(),
+                    //     builder: (context, snapshot) {
+                    //       if (!snapshot.hasData) {
+                    //         return Center(child: CircularProgressIndicator());
+                    //       }
+                    //       final reservations = snapshot.data!.docs;
+                    //
+                    //       return SingleChildScrollView(
+                    //         scrollDirection: Axis.vertical,
+                    //         // Enables vertical scrolling
+                    //         child: SingleChildScrollView(
+                    //           scrollDirection: Axis.horizontal,
+                    //           // Enables horizontal scrolling
+                    //           child: DataTable(
+                    //             headingRowColor: MaterialStateColor.resolveWith(
+                    //                 (states) => const Color(0xFFDBB017)),
+                    //             columnSpacing: 12.0,
+                    //             horizontalMargin: 12.0,
+                    //             columns: [
+                    //               DataColumn(
+                    //                   label: Text(S.current.reservationId,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.guestName,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.roomType,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.roomNumber,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.checkIn,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.checkOut,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                   label: Text(
+                    //                       'Nights', // New column for total nights
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold,
+                    //                           fontSize: 13))),
+                    //               DataColumn(
+                    //                   label: Text(S.current.totalCost,
+                    //                       style: TextStyle(
+                    //                           fontWeight: FontWeight.bold))),
+                    //               DataColumn(
+                    //                 label: Text(
+                    //                   S.current.remainingBalanceLabel,
+                    //                   style: TextStyle(
+                    //                       fontWeight: FontWeight.bold),
+                    //                 ),
+                    //               ),
+                    //               DataColumn(
+                    //                 label: Text(
+                    //                   S.current.notes,
+                    //                   style: TextStyle(
+                    //                       fontWeight: FontWeight.bold,
+                    //                       color: Colors.black),
+                    //                 ),
+                    //               ),
+                    //               DataColumn(
+                    //                 label: Text(
+                    //                   S.current.invoices,
+                    //                   style: TextStyle(
+                    //                       fontWeight: FontWeight.bold,
+                    //                       fontSize: 13),
+                    //                 ),
+                    //               ),
+                    //               DataColumn(
+                    //                 label: Text(
+                    //                   S.current.actions,
+                    //                   style: TextStyle(
+                    //                       fontWeight: FontWeight.bold,
+                    //                       fontSize: 13),
+                    //                 ),
+                    //               ),
+                    //             ],
+                    //             rows: reservations.map((reservation) {
+                    //               int totalNights = (reservation['checkOutDate']
+                    //                       as Timestamp)
+                    //                   .toDate()
+                    //                   .difference((reservation['checkInDate']
+                    //                           as Timestamp)
+                    //                       .toDate())
+                    //                   .inDays;
+                    //               return DataRow(
+                    //                 cells: [
+                    //                   DataCell(Text(reservation['reservationId']
+                    //                           .toString() ??
+                    //                       'N/A')),
+                    //                   DataCell(Text(
+                    //                       reservation['guestName'] ?? 'N/A')),
+                    //                   DataCell(Text(
+                    //                       reservation['roomType'] ?? 'N/A')),
+                    //                   DataCell(Text(
+                    //                       reservation['roomNumber'] ?? 'N/A')),
+                    //                   DataCell(Text(
+                    //                     DateFormat('yyyy-MM-dd').format(
+                    //                         (reservation['checkInDate']
+                    //                                 as Timestamp)
+                    //                             .toDate()),
+                    //                   )),
+                    //                   DataCell(Text(
+                    //                     DateFormat('yyyy-MM-dd').format(
+                    //                         (reservation['checkOutDate']
+                    //                                 as Timestamp)
+                    //                             .toDate()),
+                    //                   )),
+                    //                   DataCell(Center(
+                    //                       child: Text(totalNights.toString()))),
+                    //                   // Display total nights
+                    //
+                    //                   DataCell(Text(
+                    //                       '\$${reservation['totalCost'].toString()}')),
+                    //                   DataCell(Text(
+                    //                     '\$${reservation['remainingBalance'].toString()}',
+                    //                     style: TextStyle(color: Colors.black),
+                    //                   )),
+                    //                   DataCell(
+                    //                     Text(
+                    //                         '${reservation['notes']?['text'] ?? ''} (${reservation['notes']?['frequency'] ?? 'Just Once'})'),
+                    //                   ),
+                    //                   // Show notes with frequency
+                    //                   DataCell(
+                    //                     IconButton(
+                    //                       onPressed: () {
+                    //                         Navigator.push(
+                    //                           context,
+                    //                           MaterialPageRoute(
+                    //                             builder: (context) =>
+                    //                                 InvoiceScreen(
+                    //                               guestNumber: reservation[
+                    //                                   'mobileNumber'],
+                    //                               totalNights: totalNights,
+                    //                               paymentMethod: reservation[
+                    //                                   'paymentMethod'],
+                    //                               reservationId: reservation[
+                    //                                   'reservationId'],
+                    //                               invoiceNumber: reservation[
+                    //                                   'reservationId'],
+                    //                               // Pass the reservation ID as invoice number
+                    //                               guestName:
+                    //                                   reservation['guestName'],
+                    //                               // Pass the guest name
+                    //                               roomType:
+                    //                                   reservation['roomType'],
+                    //                               // Pass the room type
+                    //                               roomNumber:
+                    //                                   reservation['roomNumber'],
+                    //                               // Pass the room number
+                    //                               checkInDate: (reservation[
+                    //                                           'checkInDate']
+                    //                                       as Timestamp)
+                    //                                   .toDate(),
+                    //                               // Pass the check-in date
+                    //                               checkOutDate: (reservation[
+                    //                                           'checkOutDate']
+                    //                                       as Timestamp)
+                    //                                   .toDate(),
+                    //                               // Pass the check-out date
+                    //                               amountPaid: (reservation[
+                    //                                           'amountPaid'] ??
+                    //                                       0.0)
+                    //                                   .toDouble(),
+                    //                               // Ensure amountPaid is a double
+                    //                               remainingBalance: (reservation[
+                    //                                           'remainingBalance'] ??
+                    //                                       0.0)
+                    //                                   .toDouble(),
+                    //                               // Pass the remaining balance
+                    //                               totalCost: (reservation[
+                    //                                           'totalCost'] ??
+                    //                                       0.0)
+                    //                                   .toDouble(),
+                    //                               // Pass the remaining balance
+                    //                               creationDate: (reservation[
+                    //                                           'creationDate']
+                    //                                       as Timestamp)
+                    //                                   .toDate(), // Pass the creation date
+                    //                             ),
+                    //                           ),
+                    //                         );
+                    //                       },
+                    //                       icon: Icon(Icons
+                    //                           .insert_chart_outlined_outlined),
+                    //                     ),
+                    //                   ),
+                    //                   DataCell(
+                    //                     IconButton(
+                    //                       onPressed: () async {
+                    //                         // Delete reservation from Firestore
+                    //                         await FirebaseFirestore.instance
+                    //                             .collection('reservations')
+                    //                             .doc(
+                    //                                 reservation['reservationId']
+                    //                                     .toString())
+                    //                             .delete();
+                    //
+                    //                         // Update room status to Available
+                    //                         await FirebaseFirestore.instance
+                    //                             .collection('rooms')
+                    //                             .doc(reservation['roomNumber'])
+                    //                             .update({
+                    //                           'status': 'Available',
+                    //                           'currentGuest': null,
+                    //                           // Clear current guest
+                    //                         });
+                    //
+                    //                         // Show success message
+                    //                         ScaffoldMessenger.of(context)
+                    //                             .showSnackBar(
+                    //                           SnackBar(
+                    //                               content: Text(S.current
+                    //                                   .reservationDeletedSuccess)),
+                    //                         );
+                    //                       },
+                    //                       icon: Icon(Icons.delete,
+                    //                           color: Colors
+                    //                               .red), // Change icon to delete
+                    //                     ),
+                    //                   ),
+                    //                 ],
+                    //               );
+                    //             }).toList(),
+                    //           ),
+                    //         ),
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }

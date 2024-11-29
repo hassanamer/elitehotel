@@ -1,8 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:elitehotel/generated/l10n.dart';
 import 'package:elitehotel/widgets/dashboard_widgets/floor_status_chart.dart';
 import 'package:flutter/material.dart';
 
 class RoomStatusSection extends StatefulWidget {
+  final int occupiedCleanRooms;   // Number of occupied clean rooms
+  final int occupiedDirtyRooms;   // Number of occupied dirty rooms
+  final int availableCleanRooms;  // Number of available clean rooms
+  final int availableDirtyRooms;  // Number of available dirty rooms
+
+  const RoomStatusSection({
+    Key? key,
+    required this.occupiedCleanRooms,
+    required this.occupiedDirtyRooms,
+    required this.availableCleanRooms,
+    required this.availableDirtyRooms,
+  }) : super(key: key);
   @override
   _RoomStatusSectionState createState() => _RoomStatusSectionState();
 }
@@ -33,7 +46,7 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
         bool isOccupied = roomData['status'] == 'Occupied';
         String cleaningStatus = roomData['cleaningStatus'];
 
-        print("Room ID: ${roomDoc.id}, Status: ${roomData['status']}, Cleaning Status: $cleaningStatus");
+
 
         if (isOccupied) {
           if (cleaningStatus == 'Clean') {
@@ -43,7 +56,6 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
           }
         } else {
           bool isReserved = await _checkIfRoomIsReserved(roomDoc.id);
-          print("Room ${roomDoc.id} is reserved: $isReserved");
 
           if (!isReserved) {
             if (cleaningStatus == 'Clean') {
@@ -62,7 +74,6 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
         availableDirtyRooms = tempAvailableDirty;
       });
     } catch (e) {
-      print("Error fetching room data: $e");
     }
   }
 
@@ -74,63 +85,155 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
           .where('checkOutDate', isGreaterThanOrEqualTo: DateTime.now())
           .get();
 
-      print("Reservations for room $roomId: ${reservations.docs.length}");
       return reservations.docs.isNotEmpty;
     } catch (e) {
-      print("Error checking reservation for room $roomId: $e");
       return false;
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: SizedBox(
-        height: 350,
-        child: Card(
-          margin: const EdgeInsets.all(16.0),
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Room Status',
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10.0),
-                    child: GridView.count(
-                      crossAxisCount: 3,
-                      childAspectRatio: 1.8,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildStatusTile("Occupied Rooms", occupiedCleanRooms.toString(), occupiedDirtyRooms.toString()),
-                        _buildStatusTile("Available Rooms", availableCleanRooms.toString(), availableDirtyRooms.toString()),
-                        FloorStatusSection(),
-                      ],
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 600) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SizedBox(
+          height: 350,
+          child: Card(
+            margin: const EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   Text(
+                     S.current.roomStatus ,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10.0),
+                      child: GridView.count(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.7,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildStatusTileWeb(
+                              S.current.occupiedRooms,
+                              occupiedCleanRooms.toString(),
+                              occupiedDirtyRooms.toString()),
+                          _buildStatusTileWeb(
+                              S.current.availableRooms,
+                              availableCleanRooms.toString(),
+                              availableDirtyRooms.toString()),
+                          FloorStatusSection(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SizedBox(
+          height: 700,
+          child: Card(
+            margin: const EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 15, top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   Text(
+                   S.current.roomStatus,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Adjust the number of columns based on screen width
+                        int columns = constraints.maxWidth > 600 ? 3 : 1;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3.0),
+                              child: GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: columns,
+                                  childAspectRatio: 2.3,
+                                ),
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: 4,
+                                // Total number of items in the grid
+                                itemBuilder: (context, index) {
+                                  // Return the appropriate widget based on index
+                                  switch (index) {
+                                    case 0:
+                                      return _buildStatusTile(
+                                        S.current.occupiedRooms,
+                                        occupiedCleanRooms.toString(),
+                                        occupiedDirtyRooms.toString(),
+                                      );
+                                    case 1:
+                                      return _buildStatusTile(
+                                       S.current.availableRooms,
+                                        availableCleanRooms.toString(),
+                                        availableDirtyRooms.toString(),
+                                      );
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(), // Optional: To separate Floor Status visually
+                             Text(
+                              S.current.floorStatus,
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            FloorStatusSection(), // FloorStatus remains unaffected here
+
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
-  Widget _buildStatusTile(String title, String clean, String dirty) {
+  Widget _buildStatusTileWeb(String title, String clean, String dirty) {
     Color cleanColor = Colors.green;
     Color dirtyColor = Colors.red;
 
@@ -149,16 +252,18 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Clean", style: TextStyle(color: Colors.black)),
+                   Text(S.current.clean, style: TextStyle(color: Colors.black)),
                   Text(
                     clean,
-                    style: TextStyle(color: cleanColor, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: cleanColor, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -166,14 +271,68 @@ class _RoomStatusSectionState extends State<RoomStatusSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Dirty", style: TextStyle(color: Colors.black)),
+                   Text(S.current.dirty, style: TextStyle(color: Colors.black)),
                   Text(
                     dirty,
-                    style: TextStyle(color: dirtyColor, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: dirtyColor, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusTile(String title, String clean, String dirty) {
+    Color cleanColor = Colors.green;
+    Color dirtyColor = Colors.red;
+
+    return Container(
+      margin: const EdgeInsets.all(8.0),
+      child: SizedBox(
+        height: 80, // Fixed height for status tiles
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                     Text(S.current.clean, style: TextStyle(color: Colors.black)),
+                    Text(
+                      clean,
+                      style: TextStyle(color: cleanColor, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                     Text(S.current.dirty, style: TextStyle(color: Colors.black)),
+                    Text(
+                      dirty,
+                      style: TextStyle(color: dirtyColor, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

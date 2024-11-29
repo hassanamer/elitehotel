@@ -1,3 +1,5 @@
+import 'package:elitehotel/generated/l10n.dart';
+import 'package:elitehotel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -32,6 +34,12 @@ class _LoginScreenState extends State<LoginScreen>
     _animationController.dispose();
     super.dispose();
   }
+  Future<void> _changeLanguage() async {
+    Locale newLocale = Localizations.localeOf(context).languageCode == 'en'
+        ? const Locale('ar', 'SA')
+        : const Locale('en', 'US');
+    MyApp.setLocale(newLocale); // Use the static method to change the locale
+  }
 
   Future<void> _loginUser() async {
     if (_formKey.currentState!.validate()) {
@@ -56,8 +64,39 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) {    final screenWidth = MediaQuery.of(context).size.width;
+
+  return Scaffold(
+    appBar: PreferredSize(
+      preferredSize: Size.fromHeight(kToolbarHeight),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFDBB017),
+              Colors.deepPurple,
+              Colors.blueAccent,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.language),
+              onPressed: () {
+                setState(() {
+                  _changeLanguage(); // Change the language first
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
       body: Stack(
         children: [
           // Background Gradient
@@ -75,14 +114,16 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           // Animated Icons and Text Slogans
-          Positioned(
+           (screenWidth > 600) ?
+
+    Positioned(
             top: 140,
             left: 20,
             child: AnimatedOpacity(
               opacity: _animationController.value,
               duration: const Duration(seconds: 3),
               child: Text(
-                "Welcome Back to Elite Hospitality",
+                S.current.welcomehosibility,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -90,7 +131,23 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
-          ),
+          ):
+           Positioned(
+             top: 580,
+             left: 20,
+             child: AnimatedOpacity(
+               opacity: _animationController.value,
+               duration: const Duration(seconds: 3),
+               child: Text(
+                 S.current.welcomehosibility,
+                 style: TextStyle(
+                   color: Colors.white,
+                   fontSize: 20,
+                   fontWeight: FontWeight.bold,
+                 ),
+               ),
+             ),
+           ),
           Positioned(
             top: 60,
             right: 30,
@@ -120,12 +177,14 @@ class _LoginScreenState extends State<LoginScreen>
             left: (MediaQuery.of(context).size.width - 300) / 2,
             child: RotationTransition(
               turns: _animationController,
-              child: Image.asset(
-                'assets/elite.png',
-                color: Colors.white.withOpacity(0.2),
-                width: 300,
-                height: 200,
-                fit: BoxFit.contain,
+              child: Opacity(
+                opacity: 0.2,
+                child: Image.asset(
+                  'assets/elitee.png',
+                  width: 300,
+                  height: 200,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
@@ -162,8 +221,8 @@ class _LoginScreenState extends State<LoginScreen>
                   key: _formKey,
                   child: Column(
                     children: [
-                      const Text(
-                        "Log In to Your Account",
+                       Text(
+                        S.current.logInToYourAccount,
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -174,13 +233,13 @@ class _LoginScreenState extends State<LoginScreen>
 
                       // Email Field
                       _buildTextField(
-                          "Email", Icons.email, (value) => _email = value),
+                          S.current.email, Icons.email, (value) => _email = value),
 
                       const SizedBox(height: 20),
 
                       // Password Field with Eye Icon
                       _buildTextField(
-                          "Password", Icons.lock, (value) => _password = value,
+                          S.current.password, Icons.lock, (value) => _password = value,
                           isPassword: true),
 
                       const SizedBox(height: 24),
@@ -194,8 +253,8 @@ class _LoginScreenState extends State<LoginScreen>
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text(
-                          "Log In",
+                        child:  Text(
+                          S.current.logIn,
                           style: TextStyle(
                               fontSize: 18, color: Colors.white),
                         ),
@@ -209,12 +268,20 @@ class _LoginScreenState extends State<LoginScreen>
                         },
                         child: RichText(
                           text: TextSpan(
-                            text: "Don't have an account? ",
+                            text: S.current.dontHaveAnAccount,
                             style: const TextStyle(
                                 color: Colors.white, fontSize: 16),
                             children: [
+
                               TextSpan(
-                                text: "Sign up",
+                                text: '  ',
+                                style: const TextStyle(
+                                  color: Color(0xFFDBB017),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text: S.current.signUp,
                                 style: const TextStyle(
                                   color: Color(0xFFDBB017),
                                   fontWeight: FontWeight.bold,
@@ -252,9 +319,10 @@ class _LoginScreenState extends State<LoginScreen>
               setState(() => _isPasswordVisible = !_isPasswordVisible),
         )
             : null,
+
       ),
       obscureText: isPassword && !_isPasswordVisible,
-      style: const TextStyle(color: Color(0xFFDBB017)),
+      style: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       onChanged: onChanged,
       validator: (value) => value!.isEmpty ? 'Please enter $label' : null,
     );
@@ -264,9 +332,9 @@ class _LoginScreenState extends State<LoginScreen>
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white),
+      labelStyle: const TextStyle(color: Color(0xFFDBB017),fontWeight: FontWeight.bold,fontSize: 16),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.1),
+      fillColor: Colors.white.withOpacity(0.9),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,
