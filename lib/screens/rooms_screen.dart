@@ -4,6 +4,7 @@ import 'package:elitehotel/widgets/rooms_widgets/add_room_dialouge.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 String convertNumberToArabic(String number) {
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return number.replaceAllMapped(RegExp(r'\d'), (match) {
@@ -18,25 +19,24 @@ String getLocalizedNumber(String number) {
   return number;
 }
 
-  String getLocalizedText(String text) {
-    if (Intl.getCurrentLocale() == 'ar') {
-      const textDictionary = {
-        'Single': 'فردي',
-        'Double': 'مزدوج',
-        'Suite': 'جناح',
-        'Mini Suite': 'ميني جناح',
-        'Room': 'غرفة',
-        'Available': 'متاح',
-        'Occupied': 'مشغول',
-        'Dirty': 'متسخ',
-        'Clean': 'نظيف',
-        // Add more translations as needed
-      };
-      return textDictionary[text] ?? text;
-    }
-    return text;
+String getLocalizedText(String text) {
+  if (Intl.getCurrentLocale() == 'ar') {
+    const textDictionary = {
+      'Single': 'فردي',
+      'Double': 'مزدوج',
+      'Suite': 'جناح',
+      'Mini Suite': 'ميني جناح',
+      'Room': 'غرفة',
+      'Available': 'متاح',
+      'Occupied': 'مشغول',
+      'Dirty': 'متسخ',
+      'Clean': 'نظيف',
+      // Add more translations as needed
+    };
+    return textDictionary[text] ?? text;
   }
-
+  return text;
+}
 
 class RoomsScreen extends StatefulWidget {
   @override
@@ -47,6 +47,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
   String selectedStatus = 'All';
   TextEditingController searchController = TextEditingController();
   String? userAccountType;
+  Map<String, dynamic>? cachedUserData;
+  List<Map<String, dynamic>>? cachedRoomsData; // Cache for rooms data
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final statusOptions = {
     'All': S.current.all,
@@ -75,6 +78,22 @@ class _RoomsScreenState extends State<RoomsScreen> {
     super.initState();
     _fetchUserData();
     _getUserAccountType();
+    _fetchRoomsData(); // Fetch rooms data on initialization
+  }
+
+// Fetch rooms data and update the cache
+  Future<void> _fetchRoomsData() async {
+    // Always fetch the latest data from Firestore
+    final roomSnapshot = await _firestore.collection('rooms').get();
+    cachedRoomsData = roomSnapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  }
+
+  Future<void> _refreshData() async {
+    await _fetchUserData();
+    await _fetchRoomsData(); // Fetch the latest room data
+    setState(() {}); // Trigger rebuild to reflect changes
   }
 
   Future<void> _fetchUserData() async {
@@ -122,10 +141,21 @@ class _RoomsScreenState extends State<RoomsScreen> {
         automaticallyImplyLeading: false,
         title: Text(
           S.current.roomManagement,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Amiri',),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Amiri',
+          ),
         ),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshData, // Refresh data on button press
+          ),
+          SizedBox(
+            width: 4,
+          ),
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
             Card(
               elevation: 2,
@@ -171,7 +201,18 @@ class _RoomsScreenState extends State<RoomsScreen> {
             children: [
               _buildSearchAndFilter(),
               const SizedBox(height: 20),
-              _buildRoomDataTable(),
+              FutureBuilder<Widget>(
+                future: _buildRoomDataTable(), // Call the async method here
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else {
+                    return snapshot.data!; // Return the built widget
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -189,7 +230,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
             controller: searchController,
             decoration: InputDecoration(
               labelText: S.current.searchBy,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
               prefixIcon: const Icon(Icons.search),
             ),
             onChanged: (value) {
@@ -215,7 +257,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
             },
             decoration: InputDecoration(
               labelText: S.current.filterByStatus,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
             ),
           ),
         ),
@@ -223,134 +266,146 @@ class _RoomsScreenState extends State<RoomsScreen> {
     );
   }
 
+// ... existing code ...
 
-  // Build the room data table with scrollable functionality
-  Widget _buildRoomDataTable() {
+// Build the room data table with cached data
+  Future<Widget> _buildRoomDataTable() async {
     final screenWidth = MediaQuery.of(context).size.width; // Get screen width
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
-      builder: (context, roomSnapshot) {
-        if (!roomSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    // Use cachedRoomsData instead of fetching from Firestore directly
+    final roomsData = cachedRoomsData ?? []; // Use cached data
+    final List<Map<String, dynamic>> reservationData =
+        []; // Initialize an empty list for reservations
 
-        final roomsData = roomSnapshot.data!.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList();
+    // Fetch reservations only if needed
+    if (reservationData.isEmpty) {
+      // Fetch reservations from Firestore if not cached
+      final reservationSnapshot =
+          await _firestore.collection('reservations').get();
+      reservationData.addAll(reservationSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList());
+    }
 
-        return StreamBuilder<QuerySnapshot>(
-          stream:
-              FirebaseFirestore.instance.collection('reservations').snapshots(),
-          builder: (context, reservationSnapshot) {
-            if (!reservationSnapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
+    final filteredData = _filterRooms(roomsData, reservationData);
 
-            final reservationData = reservationSnapshot.data!.docs
-                .map((doc) => doc.data() as Map<String, dynamic>)
-                .toList();
-            final filteredData = _filterRooms(roomsData, reservationData);
+    // Check screen width to determine layout
+    if (screenWidth > 600) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Container(
+          width: screenWidth,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+                (states) => const Color(0xFFDBB017)),
+            columnSpacing: 20.0,
+            horizontalMargin: 12.0,
+            columns: _buildTableColumns(),
+            rows: filteredData.map((room) {
+              String facilities = (room['roomFacility'] is Map<String, dynamic>)
+                  ? (room['roomFacility'] as Map<String, dynamic>)
+                      .entries
+                      .where((entry) => entry.value == true)
+                      .map((entry) => entry.key)
+                      .join(', ')
+                  : 'None';
 
-            // Check screen width to determine layout
-            if (screenWidth > 600) {
-              return SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Container(
-                  width: screenWidth,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith(
-                        (states) => const Color(0xFFDBB017)),
-                    columnSpacing: 20.0,
-                    horizontalMargin: 12.0,
-                    columns: _buildTableColumns(),
-                    rows: filteredData.map((room) {
-                      String facilities =
-                          (room['roomFacility'] is Map<String, dynamic>)
-                              ? (room['roomFacility'] as Map<String, dynamic>)
-                                  .entries
-                                  .where((entry) => entry.value == true)
-                                  .map((entry) => entry.key)
-                                  .join(', ')
-                              : 'None';
+              return DataRow(cells: _buildTableCells(room, facilities));
+            }).toList(),
+          ),
+        ),
+      );
+    } else {
+      return SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+                (states) => const Color(0xFFDBB017)),
+            columnSpacing: 20.0,
+            horizontalMargin: 12.0,
+            columns: _buildTableColumns(),
+            rows: filteredData.map((room) {
+              String facilities = (room['roomFacility'] is Map<String, dynamic>)
+                  ? (room['roomFacility'] as Map<String, dynamic>)
+                      .entries
+                      .where((entry) => entry.value == true)
+                      .map((entry) => entry.key)
+                      .join(', ')
+                  : 'None';
 
-                      return DataRow(cells: _buildTableCells(room, facilities));
-                    }).toList(),
-                  ),
-                ),
-              );
-            } else {
-              return SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith(
-                        (states) => const Color(0xFFDBB017)),
-                    columnSpacing: 20.0,
-                    horizontalMargin: 12.0,
-                    columns: _buildTableColumns(),
-                    rows: filteredData.map((room) {
-                      String facilities =
-                          (room['roomFacility'] is Map<String, dynamic>)
-                              ? (room['roomFacility'] as Map<String, dynamic>)
-                                  .entries
-                                  .where((entry) => entry.value == true)
-                                  .map((entry) => entry.key)
-                                  .join(', ')
-                              : 'None';
-
-                      return DataRow(cells: _buildTableCells(room, facilities));
-                    }).toList(),
-                  ),
-                ),
-              );
-            }
-          },
-        );
-      },
-    );
+              return DataRow(cells: _buildTableCells(room, facilities));
+            }).toList(),
+          ),
+        ),
+      );
+    }
   }
 
   // Table column headers
   List<DataColumn> _buildTableColumns() {
     return [
       DataColumn(
-          label: Text(S.current.roomNumber,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.roomNumber,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.bedType,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.bedType,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.roomType,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.roomType,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.roomFloor,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.roomFloor,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.facilities,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.facilities,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.status,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.status,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.cleaningStatus,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.cleaningStatus,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
       DataColumn(
-          label: Text(S.current.currentGuest,
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 16),)),
+          label: Text(
+        S.current.currentGuest,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, fontFamily: 'Amiri', fontSize: 16),
+      )),
     ];
   }
 
@@ -363,11 +418,36 @@ class _RoomsScreenState extends State<RoomsScreen> {
     String noGuestText = Intl.getCurrentLocale() == 'ar' ? 'لا يوجد' : 'None';
 
     return [
-      DataCell(Text(getLocalizedNumber(room['roomNumber']),style: TextStyle(fontSize: 16,),)),
-      DataCell(Text(getLocalizedText(room['bedType']),style: TextStyle(fontSize: 16,),)),
-      DataCell(Text(getLocalizedText(room['roomType']),style: TextStyle(fontSize: 16,),)),
-      DataCell(Text(getLocalizedNumber(room['roomFloor'].toString()),style: TextStyle(fontSize: 16,),)),
-      DataCell(Text(localizedFacilities.isNotEmpty ? localizedFacilities : noGuestText,style: TextStyle(fontSize: 16,),)),
+      DataCell(Text(
+        getLocalizedNumber(room['roomNumber']),
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
+      DataCell(Text(
+        getLocalizedText(room['bedType']),
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
+      DataCell(Text(
+        getLocalizedText(room['roomType']),
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
+      DataCell(Text(
+        getLocalizedNumber(room['roomFloor'].toString()),
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
+      DataCell(Text(
+        localizedFacilities.isNotEmpty ? localizedFacilities : noGuestText,
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
       DataCell(
         Text(
           getLocalizedText(room['status']),
@@ -378,8 +458,20 @@ class _RoomsScreenState extends State<RoomsScreen> {
           ),
         ),
       ),
-      DataCell(Text(getLocalizedText(room['cleaningStatus'] ?? 'N/A'),style: TextStyle(fontSize: 16,),)),
-      DataCell(Text(room['currentGuest'] ?? 'None',style: TextStyle(fontSize: 16,),),),
+      DataCell(Text(
+        getLocalizedText(room['cleaningStatus'] ?? 'N/A'),
+        style: TextStyle(
+          fontSize: 16,
+        ),
+      )),
+      DataCell(
+        Text(
+          room['currentGuest'] ?? 'None',
+          style: TextStyle(
+            fontSize: 16,
+          ),
+        ),
+      ),
     ];
   }
 
@@ -392,9 +484,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
       DateTime? lastCheckOutAt1PM;
       for (var reservation in reservations) {
         DateTime checkInDate =
-        (reservation['checkInDate'] as Timestamp).toDate();
+            (reservation['checkInDate'] as Timestamp).toDate();
         DateTime checkOutDate =
-        (reservation['checkOutDate'] as Timestamp).toDate();
+            (reservation['checkOutDate'] as Timestamp).toDate();
         DateTime checkOutAt1PM = DateTime(
           checkOutDate.year,
           checkOutDate.month,

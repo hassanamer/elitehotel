@@ -15,6 +15,8 @@ class _RatesScreenState extends State<RatesScreen> {
   List<Map<String, dynamic>> ratesData = [];
   String searchQuery = '';
   String? userAccountType;
+  List<Map<String, dynamic>>? cachedRatesData; // Cache for rates data
+
   final Map<String, String> _packageTranslations = {
     'Room (Egyptian)': 'غرفة (مصري)',
     'Room (Electronic warefare)': 'غرفة (حرب إلك)',
@@ -28,7 +30,12 @@ class _RatesScreenState extends State<RatesScreen> {
     'Suite (Electonice warefare)': 'سويت (حرب إلك)',
     'Suite (Military)': 'سويت (عسكري)',
     'Suite (Foriegns)': 'سويت (أجنبي)',
-    'Wedding Package': 'باكيدج فرح',
+    'Wedding Package solitaire': 'باكيدج قاعة سولتير',
+    'Wedding Package Akasia': 'باكيدج قاعة أكاسيا',
+    'Wedding Extra Suite[Egp]': 'سويت فرح اضافي(مصري)',
+    'Wedding Extra Suite[Foriegn]': 'سويت فرح اضافي(اجنبي)',
+    'Wedding Extra R[Foriegn]': 'غرفة فرح اضافية(اجنبي)',
+    'Wedding Extra R[Egp]': 'غرفة فرح اضافية(مصري)',
   };
 
   // Function to translate package names to Arabic
@@ -43,7 +50,16 @@ class _RatesScreenState extends State<RatesScreen> {
   @override
   void initState() {
     super.initState();
-    _getUserAccountType();
+    if (userAccountType == null) {
+      _getUserAccountType();
+    }
+    if (cachedRatesData == null) {
+      _fetchRatesData();
+    } else {
+      setState(() {
+        ratesData = cachedRatesData!; // Use cached data
+      });
+    }
   }
 
   Future<void> _getUserAccountType() async {
@@ -60,6 +76,35 @@ class _RatesScreenState extends State<RatesScreen> {
           userAccountType = userDoc.docs.first['accountType'];
         });
       }
+    }
+  }
+
+  Future<void> _fetchRatesData() async {
+    try {
+      QuerySnapshot ratesSnapshot = await _firestore.collection('rates').get();
+      QuerySnapshot roomSnapshot = await _firestore.collection('rooms').get();
+
+      List<Map<String, dynamic>> updatedRatesData = [];
+
+      for (var rateDoc in ratesSnapshot.docs) {
+        Map<String, dynamic> rate = rateDoc.data() as Map<String, dynamic>;
+        String roomType = rate['roomType'];
+
+        int availableRooms = roomSnapshot.docs
+            .where((doc) =>
+        doc['roomType'] == roomType && doc['status'] == 'Available')
+            .length;
+
+        rate['availability'] = availableRooms;
+        updatedRatesData.add(rate);
+      }
+
+      setState(() {
+        ratesData = updatedRatesData;
+        cachedRatesData = updatedRatesData; // Cache the fetched data
+      });
+    } catch (e) {
+      print("Error fetching rates data: $e");
     }
   }
 
@@ -188,6 +233,13 @@ class _RatesScreenState extends State<RatesScreen> {
         ),
         backgroundColor: const Color(0xFFDBB017),
         actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              _fetchRatesData(); // Refresh the data when the button is pressed
+            },
+          ),
+          SizedBox(width: 4,),
           if (userAccountType == 'Admin' || userAccountType == 'Manager')
             Card(
               elevation: 2,
@@ -240,38 +292,85 @@ class _RatesScreenState extends State<RatesScreen> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _fetchRates(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child:
-                          Text('${S.current.errorMessage}: ${snapshot.error}'),
-                    );
-                  }
-
-                  if (snapshot.hasData) {
-                    ratesData = snapshot.data!;
-                  } else {
-                    ratesData = [];
-                  }
-
-                  final filteredRatesData = ratesData.where((rate) {
-                    return rate['roomType'] != null &&
-                        rate['roomType']!
-                            .toString()
-                            .toLowerCase()
-                            .contains(searchQuery.toLowerCase());
-                  }).toList();
-
-                  return isMobile
-                      ? _buildMobileRatesTable(filteredRatesData)
-                      : _buildDesktopRatesTable(filteredRatesData);
-                },
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Container(
+                  width: double.infinity, // Make the container take full width
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: DataTable(
+                    headingRowColor: MaterialStateColor.resolveWith(
+                          (states) => const Color(0xFFDBB017),
+                    ),
+                    columnSpacing: 20.0,
+                    dataRowHeight: 90,
+                    horizontalMargin: 12.0,
+                    columns: _buildColumns(),
+                    rows: ratesData.where((rate) {
+                      return rate['roomType'] != null &&
+                          rate['roomType']!
+                              .toString()
+                              .toLowerCase()
+                              .contains(searchQuery.toLowerCase());
+                    }).map((rate) {
+                      String docId = rate['roomType'];
+                      return DataRow(
+                        cells: [
+                          DataCell(
+                            Text(
+                              _translatePackageName(rate['roomType'] ?? 'N/A'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Amiri',
+                                fontSize: 20,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              getLocalizedNumber(rate['rate']) ?? 'N/A',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Amiri',
+                                fontSize: 17,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                          if (userAccountType == 'Admin' || userAccountType == 'Manager')
+                            DataCell(
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () => _editRate(docId),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async {
+                                      await _deleteRate(docId);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ),
             SizedBox(

@@ -72,18 +72,25 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
   TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> reservationData = [];
   List<Map<String, dynamic>> filteredData = [];
-
+  List<Map<String, dynamic>>? cachedReservationData; // Cache for reservation data
   @override
   void initState() {
     super.initState();
-    fetchReservationData();
-  }
+    // Only fetch data if there is no cached data
+    if (cachedReservationData == null) {
+      fetchReservationData();
+    } else {
+      setState(() {
+        reservationData = cachedReservationData!;
+        filteredData = reservationData; // Use cached data
+      });
+    }  }
 
 
   Future<void> fetchReservationData() async {
     try {
       QuerySnapshot reservationSnapshot =
-          await FirebaseFirestore.instance.collection('reservations').get();
+      await FirebaseFirestore.instance.collection('reservations').get();
 
       setState(() {
         reservationData = reservationSnapshot.docs.map((doc) {
@@ -93,8 +100,8 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
           String status = DateTime.now().isBefore(checkInDate)
               ? 'Upcoming'
               : DateTime.now().isAfter(checkOutDate)
-                  ? 'Checked Out'
-                  : 'Checked In';
+              ? 'Checked Out'
+              : 'Checked In';
 
           return {
             'reservationId': data['reservationId'] ?? 'Unknown',
@@ -113,6 +120,7 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
         }).toList();
 
         filteredData = reservationData;
+        cachedReservationData = reservationData; // Cache the fetched data
       });
     } catch (e) {
       print("Error fetching reservation data: $e");
@@ -168,8 +176,16 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(S.current.sideMenuReservations,
-            style: TextStyle( fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 202)),
+            style: TextStyle( fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 22)),
         backgroundColor: const Color(0xFFDBB017),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              fetchReservationData(); // Refresh the data when the button is pressed
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),

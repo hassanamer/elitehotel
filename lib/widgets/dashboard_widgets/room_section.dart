@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RoomsSection extends StatefulWidget {
+  final List<Map<String, dynamic>> ratesData; // List of rates data with availability
+
+  const RoomsSection({
+    Key? key,
+    required this.ratesData,
+  }) : super(key: key);
   @override
   _RoomsSectionState createState() => _RoomsSectionState();
 }
@@ -24,6 +30,12 @@ class _RoomsSectionState extends State<RoomsSection> {
     'Suite (Military)': 'سويت (عسكري)',
     'Suite (Foriegns)': 'سويت (أجنبي)',
     'Wedding Package': 'باكيدج فرح',
+    'Wedding Package solitaire': 'باكيدج قاعة سولتير',
+    'Wedding Package Akasia': 'باكيدج قاعة أكاسيا',
+    'Wedding Extra Suite[Egp]': 'سويت فرح اضافي(مصري)',
+    'Wedding Extra Suite[Foriegn]': 'سويت فرح اضافي(اجنبي)',
+    'Wedding Extra R[Foriegn]': 'غرفة فرح اضافية(اجنبي)',
+    'Wedding Extra R[Egp]': 'غرفة فرح اضافية(مصري)',
   };
   // Function to translate package names to Arabic
   String _translatePackageName(String packageName) {
@@ -33,6 +45,7 @@ class _RoomsSectionState extends State<RoomsSection> {
     }
     return packageName; // Return the original if the locale is not Arabic
   }
+
   @override
   void initState() {
     super.initState();
@@ -40,28 +53,33 @@ class _RoomsSectionState extends State<RoomsSection> {
   }
 
   Future<void> _fetchRates() async {
-    // Fetch all rates from the rates collection
-    QuerySnapshot ratesSnapshot = await _firestore.collection('rates').get();
+    // Fetch all rates and rooms in a single batch
+    final ratesSnapshot = await _firestore.collection('rates').get();
+    final roomsSnapshot = await _firestore.collection('rooms').get();
 
-    // Initialize ratesData with rate information
-    ratesData = ratesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-
-    // Update ratesData with availability from the rooms collection
-    for (var rate in ratesData) {
-      String roomType = rate['roomType'];
-      QuerySnapshot roomSnapshot = await _firestore.collection('rooms')
-          .where('roomType', isEqualTo: roomType)
-          .get();
-
-      // Calculate the available rooms
-      int availableRooms = roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
-
-      // Update the availability in the rates data
-      rate['availability'] = availableRooms;
+    // Create a map of roomType to available rooms count
+    Map<String, int> roomAvailability = {};
+    for (var roomDoc in roomsSnapshot.docs) {
+      final roomData = roomDoc.data() as Map<String, dynamic>;
+      if (roomData['status'] == 'Available') {
+        final roomType = roomData['roomType'];
+        roomAvailability[roomType] = (roomAvailability[roomType] ?? 0) + 1;
+      }
     }
 
-    setState(() {}); // Refresh the UI after fetching rates and availability
+    // Combine rates data with availability data
+    ratesData = ratesSnapshot.docs.map((rateDoc) {
+      final rateData = rateDoc.data() as Map<String, dynamic>;
+      final roomType = rateData['roomType'];
+      return {
+        ...rateData,
+        'availability': roomAvailability[roomType] ?? 0, // Add availability count
+      };
+    }).toList();
+
+    setState(() {}); // Refresh the UI
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +212,4 @@ class _RoomsSectionState extends State<RoomsSection> {
       ),
     );
   }
-
-
 }

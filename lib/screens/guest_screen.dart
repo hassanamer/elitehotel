@@ -13,20 +13,29 @@ class _GuestScreenState extends State<GuestScreen> {
   TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> guestData = [];
   List<Map<String, dynamic>> filteredData = [];
-
+  List<Map<String, dynamic>>? cachedGuestData; // Cache for guest data
   @override
   void initState() {
     super.initState();
     fetchGuestData();
-
   }
 
-  Future<void> fetchGuestData() async {
+
+  Future<void> fetchGuestData({bool forceRefresh = false}) async {
+    if (cachedGuestData != null && !forceRefresh) {
+      // Use cached data if available and not forcing a refresh
+      setState(() {
+        guestData = cachedGuestData!;
+        filteredData = guestData;
+      });
+      return;
+    }
+
     try {
       QuerySnapshot reservationSnapshot =
-          await FirebaseFirestore.instance.collection('reservations').get();
+      await FirebaseFirestore.instance.collection('reservations').get();
       QuerySnapshot roomSnapshot =
-          await FirebaseFirestore.instance.collection('rooms').get();
+      await FirebaseFirestore.instance.collection('rooms').get();
 
       List<Map<String, dynamic>> roomsData = roomSnapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
@@ -37,16 +46,16 @@ class _GuestScreenState extends State<GuestScreen> {
       setState(() {
         guestData = reservationSnapshot.docs.map((doc) {
           Map<String, dynamic> reservationData =
-              doc.data() as Map<String, dynamic>;
+          doc.data() as Map<String, dynamic>;
           Map<String, dynamic>? roomInfo = roomsData.firstWhere(
-            (room) => room['roomNumber'] == reservationData['roomNumber'],
+                (room) => room['roomNumber'] == reservationData['roomNumber'],
             orElse: () => {},
           );
 
           DateTime? checkInDate =
-              (reservationData['checkInDate'] as Timestamp).toDate();
+          (reservationData['checkInDate'] as Timestamp).toDate();
           DateTime? checkOutDate =
-              (reservationData['checkOutDate'] as Timestamp).toDate();
+          (reservationData['checkOutDate'] as Timestamp).toDate();
 
           String checkInOutStatus;
           if (today.isBefore(checkInDate)) {
@@ -77,13 +86,12 @@ class _GuestScreenState extends State<GuestScreen> {
         }).toList();
 
         filteredData = guestData;
+        cachedGuestData = guestData; // Cache the fetched data
       });
     } catch (e) {
       print("Error fetching guest data: $e");
     }
   }
-
-
   String _localizeStatus(String status, Locale locale) {
     if (locale.languageCode == 'ar') {
       switch (status) {
@@ -206,6 +214,14 @@ class _GuestScreenState extends State<GuestScreen> {
           title:  Text(S.current.guestManagement,
               style: TextStyle(fontSize: 26,  fontFamily: 'Amiri',fontWeight: FontWeight.bold)),
           backgroundColor: const Color(0xFFDBB017),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: () {
+                fetchGuestData(forceRefresh: true); // Refresh cached data
+              },
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(12.0),

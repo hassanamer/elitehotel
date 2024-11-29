@@ -1,81 +1,25 @@
+// lib/widgets/dashboard_widgets/overview_section.dart
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elitehotel/generated/l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class OverviewSection extends StatefulWidget {
-  @override
-  _OverviewSectionState createState() => _OverviewSectionState();
-}
+class OverviewSection extends StatelessWidget {
+  final int checkInsToday;
+  final int checkOutsToday;
+  final int totalRooms;
+  final int availableRooms;
+  final int occupiedRooms;
 
-class _OverviewSectionState extends State<OverviewSection> {
-  int checkInsToday = 0;
-  int checkOutsToday = 0;
-  int totalRooms = 0;
-  int availableRooms = 0;
-  int occupiedRooms = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchOverviewData();
-  }
-
-  Future<void> fetchOverviewData() async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
-
-    // Fetch room data
-    try {
-      QuerySnapshot roomSnapshot =
-      await FirebaseFirestore.instance.collection('rooms').get();
-      totalRooms = roomSnapshot.docs.length;
-      availableRooms =
-          roomSnapshot.docs.where((doc) => doc['status'] == 'Available').length;
-    } catch (e) {
-      print("Error fetching rooms: $e");
-    }
-
-    // Fetch reservations for today (check-ins and check-outs)
-    try {
-      // Get rooms that are occupied today based on check-in and check-out dates
-      QuerySnapshot reservationSnapshot = await FirebaseFirestore.instance
-          .collection('reservations')
-          .where('checkInDate', isLessThanOrEqualTo: endOfDay)
-          .where('checkOutDate', isGreaterThanOrEqualTo: startOfDay)
-          .get();
-
-      checkInsToday = reservationSnapshot.docs.where((doc) {
-        final checkInDate = (doc['checkInDate'] as Timestamp).toDate();
-        // Check if the check-in date is today
-        return checkInDate.year == today.year &&
-            checkInDate.month == today.month &&
-            checkInDate.day == today.day;
-      }).length;
-
-      // Update the count of occupied rooms for today
-      occupiedRooms = reservationSnapshot.docs.length;
-
-      // Fetch check-outs for today (only if they are leaving today)
-      QuerySnapshot checkOutSnapshot = await FirebaseFirestore.instance
-          .collection('reservations')
-          .where('checkOutDate', isGreaterThanOrEqualTo: startOfDay)
-          .where('checkOutDate', isLessThanOrEqualTo: endOfDay)
-          .get();
-
-      checkOutsToday = checkOutSnapshot.docs.length;
-
-      // Update availableRooms by subtracting occupied from total rooms
-      availableRooms = totalRooms - occupiedRooms;
-    } catch (e) {
-      print("Error fetching reservations: $e");
-    }
-
-    setState(() {});
-  }
+  const OverviewSection({
+    Key? key,
+    required this.checkInsToday,
+    required this.checkOutsToday,
+    required this.totalRooms,
+    required this.availableRooms,
+    required this.occupiedRooms,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +32,7 @@ class _OverviewSectionState extends State<OverviewSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             Text(
+            Text(
               S.current.overview,
               style: TextStyle(
                 fontSize: 20,
@@ -106,15 +50,15 @@ class _OverviewSectionState extends State<OverviewSection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildOverviewColumn(
-                    screenWidth,S.current.todaysCheckIns, checkInsToday),
-                _buildOverviewColumn(
-                    screenWidth, S.current.todaysCheckOuts, checkOutsToday),
+                    screenWidth, S.current.todaysCheckIns, checkInsToday),
+                _buildOverviewColumn(screenWidth,
+                    S.current.todaysCheckOuts, checkOutsToday),
                 _buildOverviewColumn(screenWidth, S.current.totalInHotel,
-                    occupiedRooms + availableRooms),
-                _buildOverviewColumn(
-                    screenWidth, S.current.totalAvailableRooms, availableRooms),
-                _buildOverviewColumn(
-                    screenWidth, S.current.totalOccupiedRooms, occupiedRooms),
+                    totalRooms),
+                _buildOverviewColumn(screenWidth,
+                    S.current.totalAvailableRooms, availableRooms),
+                _buildOverviewColumn(screenWidth,
+                    S.current.totalOccupiedRooms, occupiedRooms),
               ],
             )
                 : Column(

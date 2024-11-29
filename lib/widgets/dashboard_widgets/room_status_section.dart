@@ -4,6 +4,18 @@ import 'package:elitehotel/widgets/dashboard_widgets/floor_status_chart.dart';
 import 'package:flutter/material.dart';
 
 class RoomStatusSection extends StatefulWidget {
+  final int occupiedCleanRooms;   // Number of occupied clean rooms
+  final int occupiedDirtyRooms;   // Number of occupied dirty rooms
+  final int availableCleanRooms;  // Number of available clean rooms
+  final int availableDirtyRooms;  // Number of available dirty rooms
+
+  const RoomStatusSection({
+    Key? key,
+    required this.occupiedCleanRooms,
+    required this.occupiedDirtyRooms,
+    required this.availableCleanRooms,
+    required this.availableDirtyRooms,
+  }) : super(key: key);
   @override
   _RoomStatusSectionState createState() => _RoomStatusSectionState();
 }

@@ -29,21 +29,24 @@ class _HKScreenState extends State<HKScreen> {
 
   Future<void> _fetchUserData() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final email = currentUser.email;
-      final userQuery = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
 
-      if (userQuery.docs.isNotEmpty) {
-        final userDoc = userQuery.docs.first;
-        setState(() {
-          hkUserId = userDoc.id;
-          hkName = userDoc['name'];
-          userAccountType = userDoc['accountType'];
-        });
+    if (currentUser != null) {
+      try {
+        // Directly fetch the document using the user's UID
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            hkUserId = currentUser.uid;
+            hkName = userDoc.data()?['name'] ?? '';
+            userAccountType = userDoc.data()?['accountType'] ?? '';
+          });
+        }
+      } catch (e) {
+        print('Error fetching user data: $e');
       }
     }
   }

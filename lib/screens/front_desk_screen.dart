@@ -29,27 +29,138 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAllRooms();
-    _fetchDailyReminders(DateTime.now());
+    _initializeData();
+
   }
 
-  Future<void> _addRequest(String requestDetail) async {
-    await _firestore.collection('frontdeskRequest').add({
-      'requestDetail': requestDetail,
-      'date': DateTime.now(),
-      'status': 'Pending',
-    });
+  Future<void> _initializeData() async {
+    // Fetch all rooms and daily reminders in parallel
+    await Future.wait([
+      _fetchAllRooms(),
+      _fetchDailyReminders(selectedReminderDate),
+    ]);
   }
 
   Future<void> _fetchAllRooms() async {
-    QuerySnapshot snapshot = await _firestore.collection('rooms').get();
-    setState(() {
-      allRooms = snapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
+    try {
+      QuerySnapshot snapshot = await _firestore.collection('rooms').get();
+
+      List<Map<String, dynamic>> rooms = snapshot.docs.map((doc) {
+        return doc.data() as Map<String, dynamic>;
+      }).toList();
+
+      // Fetch reservations to determine room statuses
+      DateTime today = DateTime.now();
+      QuerySnapshot reservationsSnapshot = await _firestore
+          .collection('reservations')
+          .where('checkInDate', isLessThanOrEqualTo: today)
+          .where('checkOutDate', isGreaterThan: today)
+          .get();
+
+      List<String> occupiedRooms = reservationsSnapshot.docs
+          .map((doc) => doc['roomNumber'] as String)
           .toList();
-    });
-    _updateRoomStatuses();
+
+      // Update room statuses
+      setState(() {
+        allRooms = rooms.map((room) {
+          return {
+            ...room,
+            'status': occupiedRooms.contains(room['roomNumber'])
+                ? 'Occupied'
+                : 'Available',
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print("Error fetching rooms: $e");
+    }
   }
+
+  Future<void> _fetchDailyReminders(DateTime date) async {
+    try {
+      DateTime selectedDay = DateTime(date.year, date.month, date.day);
+
+      QuerySnapshot snapshot = await _firestore
+          .collection('notes')
+          .where('checkInDate', isLessThanOrEqualTo: selectedDay)
+          .where('checkOutDate', isGreaterThanOrEqualTo: selectedDay)
+          .get();
+
+      List<Map<String, dynamic>> reminders = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        DateTime checkInDate =
+        (data['checkInDate'] as Timestamp).toDate().toLocal();
+        DateTime checkOutDate =
+        (data['checkOutDate'] as Timestamp).toDate().toLocal();
+
+        return {
+          'reservationId': doc.id,
+          'room': data['room'] ?? 'Unknown Room',
+          'guestRequest': data['text'] ?? 'No requests',
+          'frequency': data['frequency'] ?? 'justOnce',
+          'checkInDate': checkInDate,
+          'checkOutDate': checkOutDate,
+          'status': data['status'] ?? 'Pending',
+          'assignedToHK': data['assignedToHK'] ?? false,
+        };
+      }).toList();
+
+      // Filter based on daily or justOnce frequency
+      setState(() {
+        dailyReminders = reminders.where((reminder) {
+          DateTime checkIn = reminder['checkInDate'];
+          DateTime checkOut = reminder['checkOutDate'];
+          String frequency = reminder['frequency'];
+
+          bool isWithinRange =
+              !checkIn.isAfter(selectedDay) && !checkOut.isBefore(selectedDay);
+          bool isDaily = frequency == 'Daily';
+          bool isJustOnce = frequency == 'justOnce' &&
+              selectedDay.isAtSameMomentAs(checkIn);
+
+          return isWithinRange && (isDaily || isJustOnce);
+        }).toList();
+      });
+    } catch (e) {
+      print("Error fetching reminders: $e");
+    }
+  }
+
+  Future<void> _addRequest(String requestDetail) async {
+    try {
+      await _firestore.collection('frontdeskRequest').add({
+        'requestDetail': requestDetail,
+        'date': DateTime.now(),
+        'status': 'Pending',
+      });
+    } catch (e) {
+      print("Error adding request: $e");
+    }
+  }
+
+  Future<void> _assignToHK(String reservationId) async {
+    try {
+      await _firestore.collection('notes').doc(reservationId).update({
+        'assignedToHK': true,
+      });
+      await _fetchDailyReminders(selectedReminderDate); // Refresh data
+    } catch (e) {
+      print("Error assigning to HK: $e");
+    }
+  }
+
+  Future<void> _updateRequestStatus(String reservationId, String newStatus) async {
+    try {
+      await _firestore.collection('reservations').doc(reservationId).update({
+        'notes.status': newStatus,
+      });
+      await _fetchDailyReminders(selectedReminderDate);
+    } catch (e) {
+      print("Error updating request status: $e");
+    }
+  }
+
 
   void _showAddRequestDialog() {
     TextEditingController requestController = TextEditingController();
@@ -92,80 +203,6 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
     'completed': S.current.completed,
   };
 
-  Future<void> _fetchDailyReminders(DateTime date) async {
-    try {
-      // Normalize the selected day to midnight
-      DateTime selectedDay = DateTime(date.year, date.month, date.day);
-      print("Fetching reminders for date: $selectedDay");
-
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('notes')
-          .where('checkInDate', isLessThanOrEqualTo: selectedDay)
-          .where('checkOutDate', isGreaterThanOrEqualTo: selectedDay)
-          .get();
-
-      print("Number of documents fetched: ${snapshot.docs.length}");
-
-      setState(() {
-        dailyReminders = snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>? ?? {};
-          print("Document data: $data");
-
-          // Parse Firestore timestamps
-          DateTime checkInDate =
-              (data['checkInDate'] as Timestamp?)?.toDate() ?? DateTime.now();
-          DateTime checkOutDate =
-              (data['checkOutDate'] as Timestamp?)?.toDate() ?? DateTime.now();
-
-          // Normalize dates to midnight for comparison
-          checkInDate =
-              DateTime(checkInDate.year, checkInDate.month, checkInDate.day);
-          checkOutDate =
-              DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
-
-          return {
-            'reservationId': data['reservationId']?.toString() ?? 'Unknown',
-            'room': data['room']?.toString() ?? 'Unknown Room',
-            'guestRequest': data['text'] ?? 'No requests',
-            'frequency': data['frequency'] ?? 'justOnce',
-            'checkInDate': checkInDate,
-            'checkOutDate': checkOutDate,
-            'status': data['status'] ?? 'Pending',
-            'assignedToHK': data['assignedToHK'] ?? false,
-          };
-        }).where((reminder) {
-          // Retrieve values
-          DateTime checkIn = reminder['checkInDate'];
-          DateTime checkOut = reminder['checkOutDate'];
-          String frequency = reminder['frequency'];
-
-          // Evaluate conditions
-          bool isWithinDateRange =
-              !checkIn.isAfter(selectedDay) && !checkOut.isBefore(selectedDay);
-          bool isDailyReminder = frequency == 'Daily';
-
-          // Update condition for justOnce
-          bool isJustOnceReminder = frequency == 'justOnce' &&
-              (selectedDay.isAfter(checkIn.subtract(Duration(days: 1))) &&
-                  selectedDay.isBefore(checkOut.add(Duration(days: 1))));
-
-          // Debug output
-          print("Reminder: $reminder");
-          print("Selected day: $selectedDay");
-          print("Check-in: $checkIn, Check-out: $checkOut");
-          print("Within range: $isWithinDateRange");
-          print("Daily: $isDailyReminder, Just once: $isJustOnceReminder");
-
-          // Final filtering condition
-          return isWithinDateRange && (isDailyReminder || isJustOnceReminder);
-        }).toList();
-
-        print("Filtered reminders: $dailyReminders");
-      });
-    } catch (e) {
-      print("Error fetching daily reminders: $e");
-    }
-  }
 
 
   void _selectDate(BuildContext context) async {
@@ -181,51 +218,6 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> {
       });
       _fetchDailyReminders(picked);
     }
-  }
-
-
-// ... existing code ...
-  void _updateRoomStatuses() async {
-    QuerySnapshot snapshot = await _firestore
-        .collection('reservations')
-        .where('checkInDate', isLessThanOrEqualTo: selectedDate)
-        .where('checkOutDate',
-            isGreaterThan:
-                selectedDate) // Change to > to exclude check-outs today
-        .get();
-
-    List<String> occupiedRooms =
-        snapshot.docs.map((doc) => doc['roomNumber'] as String).toList();
-
-    setState(() {
-      allRooms = allRooms.map((room) {
-        return {
-          ...room,
-          'status': occupiedRooms.contains(room['roomNumber'])
-              ? 'Occupied'
-              : 'Available',
-        };
-      }).toList();
-    });
-  }
-
-// Add this method to assign the note to housekeeping
-  void _assignToHK(String reservationId) async {
-    await FirebaseFirestore.instance
-        .collection('notes')
-        .doc(reservationId)
-        .update({
-      'assignedToHK': true,
-    });
-    _fetchDailyReminders(selectedReminderDate); // Refresh the reminders after assignment
-  }
-
-  void _updateRequestStatus(String reservationId, String newStatus) async {
-    await _firestore.collection('reservations').doc(reservationId).update({
-      'notes.status': newStatus,
-    });
-    _fetchDailyReminders(selectedReminderDate);
-
   }
 
   Widget _buildDailyReminders() {
@@ -529,13 +521,6 @@ Widget _buildDailyRemindersForMob() {
     );
   }
 
-
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -582,7 +567,6 @@ Widget _buildDailyRemindersForMob() {
       ),
     );
   }
-// ... existing code ...
 
   Widget _buildCalendarAndRoomStatus() {
     return Row(
