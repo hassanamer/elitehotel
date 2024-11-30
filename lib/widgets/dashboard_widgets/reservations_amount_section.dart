@@ -163,6 +163,8 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
                   overflow: TextOverflow.ellipsis,
                   fontSize: 16,
                   color: Colors.black,
+                  fontFamily: 'Amiri',
+
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -174,6 +176,8 @@ class _ReservationsAmountSectionState extends State<ReservationsAmountSection> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  fontFamily: 'Amiri',
+
                   color: Color(0xFFDBB017),
                 ),
               ),

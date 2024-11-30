@@ -88,6 +88,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     cachedRoomsData = roomSnapshot.docs
         .map((doc) => doc.data() as Map<String, dynamic>)
         .toList();
+    setState(() {});
   }
 
   Future<void> _refreshData() async {

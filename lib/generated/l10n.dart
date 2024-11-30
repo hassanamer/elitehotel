@@ -770,6 +770,16 @@ class S {
     );
   }
 
+  /// `Total Hotel`
+  String get totalhotel {
+    return Intl.message(
+      'Total Hotel',
+      name: 'totalhotel',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `day`
   String get day {
     return Intl.message(

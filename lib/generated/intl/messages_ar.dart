@@ -365,6 +365,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("إجمالي\nالغرف المشغولة"),
         "totalOccupiedRoomsMobile":
             MessageLookupByLibrary.simpleMessage("إجمالي الغرف المشغولة"),
+        "totalhotel": MessageLookupByLibrary.simpleMessage("إجمالي الفندق"),
         "totalnights": MessageLookupByLibrary.simpleMessage("عدد الليالي"),
         "tv": MessageLookupByLibrary.simpleMessage("تلفاز"),
         "unknown": MessageLookupByLibrary.simpleMessage("غير معروف"),

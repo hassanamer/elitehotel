@@ -7,6 +7,8 @@ import 'package:elitehotel/widgets/dashboard_widgets/room_occupency_section.dart
 import 'package:elitehotel/widgets/dashboard_widgets/room_section.dart';
 import 'package:elitehotel/widgets/dashboard_widgets/room_status_section.dart';
 
+import 'packages_occupancy_chart.dart';
+
 class DashboardScreen extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -77,13 +79,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'availability': roomSnapshot.docs.where((roomDoc) => roomDoc['roomType'] == rateData['roomType'] && roomDoc['status'] == 'Available').length,
         };
       }).toList();
+      List<Map<String, dynamic>> packageOccupancyData = [
+        {'packageName': 'Room', 'occupancyPercentage': 60, 'packageIndex': 0},
+        {'packageName': 'Suite', 'occupancyPercentage': 75, 'packageIndex': 1},
+        {'packageName': 'Mini Suite', 'occupancyPercentage': 50, 'packageIndex': 2},
+      ];
 
       // Fetch room status
       occupiedCleanRooms = roomSnapshot.docs.where((roomDoc) => roomDoc['status'] == 'Occupied' && roomDoc['cleaningStatus'] == 'Clean').length;
       occupiedDirtyRooms = roomSnapshot.docs.where((roomDoc) => roomDoc['status'] == 'Occupied' && roomDoc['cleaningStatus'] == 'Dirty').length;
       availableCleanRooms = roomSnapshot.docs.where((roomDoc) => roomDoc['status'] == 'Available' && roomDoc['cleaningStatus'] == 'Clean').length;
       availableDirtyRooms = roomSnapshot.docs.where((roomDoc) => roomDoc['status'] == 'Available' && roomDoc['cleaningStatus'] == 'Dirty').length;
-
+      print("Occupied Clean Rooms: $occupiedCleanRooms");
+      print("Occupied Dirty Rooms: $occupiedDirtyRooms");
+      print("Available Clean Rooms: $availableCleanRooms");
+      print("Available Dirty Rooms: $availableDirtyRooms");
       // Calculate monthly occupancy
       monthlyOccupancy = await _calculateMonthlyOccupancy(totalRooms);
 
@@ -155,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             RoomStatusSection(
               occupiedCleanRooms: occupiedCleanRooms,
               occupiedDirtyRooms: occupiedDirtyRooms,
-              availableCleanRooms: availableCleanRooms,
+                availableCleanRooms: availableCleanRooms,
               availableDirtyRooms: availableDirtyRooms,
             ),
             OccupancyStatistics(
@@ -163,6 +173,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               monthlyOccupancy: monthlyOccupancy,
               onYearSelected: _selectYear,
             ),
+            PackageOccupancyTable(selectedYear: selectedYear,  onYearChanged: (year) {
+              setState(() {
+                selectedYear = year;
+              });
+            },),
+
             ReservationsAmountSection(),
           ],
         ),

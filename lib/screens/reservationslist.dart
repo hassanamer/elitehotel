@@ -89,14 +89,42 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
 
   Future<void> fetchReservationData() async {
     try {
-      QuerySnapshot reservationSnapshot =
-      await FirebaseFirestore.instance.collection('reservations').get();
+      QuerySnapshot reservationSnapshot = await FirebaseFirestore.instance.collection('reservations').get();
 
       setState(() {
         reservationData = reservationSnapshot.docs.map((doc) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          DateTime checkInDate = (data['checkInDate'] as Timestamp).toDate();
-          DateTime checkOutDate = (data['checkOutDate'] as Timestamp).toDate();
+
+          // Debugging output to check the data types
+          print('Fetched data: $data');
+
+          DateTime checkInDate;
+          DateTime checkOutDate;
+
+          // Check if checkInDate is of type Timestamp or DateTime
+          if (data['checkInDate'] is Timestamp) {
+            checkInDate = (data['checkInDate'] as Timestamp).toDate();
+            print('checkInDate is Timestamp: $checkInDate');
+          } else if (data['checkInDate'] is DateTime) {
+            checkInDate = data['checkInDate'] as DateTime;
+            print('checkInDate is DateTime: $checkInDate');
+          } else {
+            checkInDate = DateTime.now(); // Default value or handle error
+            print('checkInDate is neither Timestamp nor DateTime, using default: $checkInDate');
+          }
+
+          // Check if checkOutDate is of type Timestamp or DateTime
+          if (data['checkOutDate'] is Timestamp) {
+            checkOutDate = (data['checkOutDate'] as Timestamp).toDate();
+            print('checkOutDate is Timestamp: $checkOutDate');
+          } else if (data['checkOutDate'] is DateTime) {
+            checkOutDate = data['checkOutDate'] as DateTime;
+            print('checkOutDate is DateTime: $checkOutDate');
+          } else {
+            checkOutDate = DateTime.now(); // Default value or handle error
+            print('checkOutDate is neither Timestamp nor DateTime, using default: $checkOutDate');
+          }
+
           String status = DateTime.now().isBefore(checkInDate)
               ? 'Upcoming'
               : DateTime.now().isAfter(checkOutDate)
@@ -134,27 +162,47 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
     setState(() {
       filteredData = reservationData.where((reservation) {
         String localizedStatus = getLocalizedStatus(reservation['status']);
-        bool matchesStatus = selectedStatus == S.current.all || localizedStatus == selectedStatus;
-        bool matchesSearch = (reservation['guestName']
-                    ?.toString()
-                    .toLowerCase()
-                    .contains(searchQuery) ??
-                false) ||
-            (reservation['reservationId']
-                    ?.toString()
-                    .toLowerCase()
-                    .contains(searchQuery) ??
-                false) ||
-            (reservation['roomNumber']
-                    ?.toString()
-                    .toLowerCase()
-                    .contains(searchQuery) ??
-                false);
+
+        // Ensure checkOutDate is a DateTime
+        DateTime checkOutDate;
+        if (reservation['checkOutDate'] is Timestamp) {
+          checkOutDate = (reservation['checkOutDate'] as Timestamp).toDate();
+        } else if (reservation['checkOutDate'] is DateTime) {
+          checkOutDate = reservation['checkOutDate'] as DateTime;
+        } else {
+          checkOutDate = DateTime.now(); // Default value or handle error
+        }
+
+        // Get today's date without time
+        DateTime today = DateTime.now();
+        DateTime todayDateOnly = DateTime(today.year, today.month, today.day);
+        DateTime checkOutDateOnly = DateTime(checkOutDate.year, checkOutDate.month, checkOutDate.day);
+
+        // Check if the reservation's checkout date is today
+        bool isTodayCheckout = checkOutDateOnly.isAtSameMomentAs(todayDateOnly);
+
+        // Debugging output
+        print('Reservation ID: ${reservation['reservationId']}');
+        print('CheckOut Date: $checkOutDate');
+        print('Is Today Checkout: $isTodayCheckout');
+        print('Selected Status: $selectedStatus');
+        print('Localized Status: $localizedStatus');
+
+        // Check if the selected status matches the reservation status
+        bool matchesStatus = selectedStatus == S.current.all ||
+            localizedStatus == selectedStatus ||
+            (selectedStatus == 'Today\'s Checkouts' && isTodayCheckout);
+
+        // Check if the search query matches any of the fields
+        bool matchesSearch = (reservation['guestName']?.toString().toLowerCase().contains(searchQuery) ?? false) ||
+            (reservation['reservationId']?.toString().toLowerCase().contains(searchQuery) ?? false) ||
+            (reservation['roomNumber']?.toString().toLowerCase().contains(searchQuery) ?? false);
+
+        // Return true if both status and search match
         return matchesStatus && matchesSearch;
       }).toList();
     });
   }
-
   Color getStatusColor(String status) {
     switch (status) {
       case 'Checked In':
@@ -217,11 +265,13 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                       DropdownMenuItem(value: S.current.checkedIn, child: Text(S.current.checkedIn)),
                       DropdownMenuItem(value: S.current.checkedOut, child: Text(S.current.checkedOut)),
                       DropdownMenuItem(value: S.current.upcoming, child: Text(S.current.upcoming)),
+                      DropdownMenuItem(value: 'Today\'s Checkouts', child: Text('Today\'s Checkouts')),
+
                     ],
                     onChanged: (value) {
                       setState(() {
                         selectedStatus = value!;
-                        filterData();
+                        filterData(); // Call filterData when the dropdown value changes
                       });
                     },
                     decoration: InputDecoration(
@@ -259,31 +309,31 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                     columns: [
                       DataColumn(
                           label: Text(S.current.reservationId,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.guestName,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.roomNumber,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.totalCost,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.amountPaid,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.status,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
-                          label: Text(S.current.checkInOut,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                          label: Text(S.current.checkOutDate,
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.more,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                       DataColumn(
                           label: Text(S.current.invoices,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 18))),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Amiri',fontSize: 17))),
                     ],
                     rows: filteredData.map((reservation) {
                       return DataRow(cells: [
@@ -305,7 +355,7 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                         DataCell(
                           Text(
                             DateFormat('yyyy-MM-dd')
-                                .format(reservation['checkInDate']),
+                                .format(reservation['checkOutDate']),
                       style: TextStyle(fontSize: 16,),
                           ),
                         ),

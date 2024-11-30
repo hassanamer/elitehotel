@@ -367,6 +367,7 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Total\nOccupied Rooms"),
         "totalOccupiedRoomsMobile":
             MessageLookupByLibrary.simpleMessage("Total Occupied Rooms"),
+        "totalhotel": MessageLookupByLibrary.simpleMessage("Total Hotel"),
         "totalnights": MessageLookupByLibrary.simpleMessage("Total Nights"),
         "tv": MessageLookupByLibrary.simpleMessage("TV"),
         "unknown": MessageLookupByLibrary.simpleMessage("Unknown"),

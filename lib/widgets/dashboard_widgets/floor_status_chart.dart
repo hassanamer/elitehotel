@@ -11,105 +11,160 @@ class FloorStatusSection extends StatelessWidget {
       margin: const EdgeInsets.all(16.0),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                }
-
-                if (snapshot.hasError) {
-                  return const Text("Error loading data");
-                }
-
-                // Group rooms by floor and calculate occupancy for each floor
-                // Updated group rooms by floor logic
-                final roomsByFloor = <String, List<DocumentSnapshot>>{};
-                for (var doc in snapshot.data!.docs) {
-                  final floor = doc['roomFloor'].toString(); // Convert roomFloor to String
-                  if (!roomsByFloor.containsKey(floor)) {
-                    roomsByFloor[floor] = [];
+        child: SizedBox(
+          height: 400, // Set the height of the card here
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
                   }
-                  roomsByFloor[floor]!.add(doc);
-                }
 
+                  if (snapshot.hasError) {
+                    return const Text("Error loading data");
+                  }
 
-                // Build a list of floor occupancy widgets
-                return Column(
-                  children: roomsByFloor.entries.map((entry) {
-                    final floor = entry.key;
-                    final rooms = entry.value;
-                    final totalRooms = rooms.length;
-                    final occupiedRooms = rooms.where((doc) => doc['status'] == 'Occupied').length;
-                    final occupancyPercentage = totalRooms > 0 ? (occupiedRooms / totalRooms) * 100 : 0.0;
+                  // Group rooms by floor and calculate occupancy for each floor
+                  final roomsByFloor = <String, List<DocumentSnapshot>>{};
+                  int totalRooms = 0;
+                  int totalOccupiedRooms = 0;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
+                  for (var doc in snapshot.data!.docs) {
+                    final floor = doc['roomFloor'].toString(); // Convert roomFloor to String
+                    if (!roomsByFloor.containsKey(floor)) {
+                      roomsByFloor[floor] = [];
+                    }
+                    roomsByFloor[floor]!.add(doc);
+
+                    // Count total rooms and total occupied rooms
+                    totalRooms++;
+                    if (doc['status'] == 'Occupied') {
+                      totalOccupiedRooms++;
+                    }
+                  }
+
+                  // Calculate total occupancy percentage
+                  final totalOccupancyPercentage = totalRooms > 0 ? (totalOccupiedRooms / totalRooms) * 100 : 0.0;
+
+                  // Build a list of floor occupancy widgets
+                  return Column(
+                    children: [
+                      // Individual floor charts in a Row
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${S.current.floor} $floor',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(
-                            height: 61,
-                            width: 61,
-                            child: CustomPaint(
-                              foregroundPainter: CircleProgressPainter(occupancyPercentage),
-                              child: Center(
-                                child: Text(
-                                  '${occupancyPercentage.toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    fontSize: occupancyPercentage >= 100 ? 20 : 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
+                        children: roomsByFloor.entries.map((entry) {
+                          final floor = entry.key;
+                          final rooms = entry.value;
+                          final floorTotalRooms = rooms.length;
+                          final floorOccupiedRooms =
+                              rooms.where((doc) => doc['status'] == 'Occupied').length;
+                          final floorOccupancyPercentage =
+                          floorTotalRooms > 0 ? (floorOccupiedRooms / floorTotalRooms) * 100 : 0.0;
+
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '${S.current.floor} $floor',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(
+                                    height: 70,
+                                    width: 61,
+                                    child: CustomPaint(
+                                      foregroundPainter: CircleProgressPainter(floorOccupancyPercentage),
+                                      child: Center(
+                                        child: Text(
+                                          '${floorOccupancyPercentage.toStringAsFixed(0)}%',
+                                          style: TextStyle(
+                                            fontSize: floorOccupancyPercentage >= 100 ? 20 : 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      const Divider(),
+
+                      // Total hotel occupancy chart
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              S.current.totalhotel,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              height: 61,
+                              width: 61,
+                              child: CustomPaint(
+                                foregroundPainter: CircleProgressPainter(totalOccupancyPercentage),
+                                child: Center(
+                                  child: Text(
+                                    '${totalOccupancyPercentage.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      fontSize: totalOccupancyPercentage >= 100 ? 20 : 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                           Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.circle, color: Colors.red, size: 10),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    S.current.occupied,
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.circle, color: Colors.grey, size: 10),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    S.current.available,
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
+                            Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.circle, color: Colors.red, size: 10),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      S.current.occupied,
+                                      style: TextStyle(color: Colors.black),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.circle, color: Colors.grey, size: 10),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      S.current.available,
+                                      style: TextStyle(color: Colors.black),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-}
+  }}
 
 class CircleProgressPainter extends CustomPainter {
   final double progress;
