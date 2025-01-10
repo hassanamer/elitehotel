@@ -351,6 +351,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("Today\'s\nCheck-outs"),
         "todaysCheckOutsMobile":
             MessageLookupByLibrary.simpleMessage("Today\'s Check-outs"),
+        "todayscheckoutt":
+            MessageLookupByLibrary.simpleMessage("Today Checkouts"),
         "todayspaymentmethods":
             MessageLookupByLibrary.simpleMessage("Today\'s Payment Methods"),
         "totalAmount": MessageLookupByLibrary.simpleMessage("Total Amount"),

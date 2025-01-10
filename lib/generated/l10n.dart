@@ -780,6 +780,16 @@ class S {
     );
   }
 
+  /// `Today Checkouts`
+  String get todayscheckoutt {
+    return Intl.message(
+      'Today Checkouts',
+      name: 'todayscheckoutt',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `day`
   String get day {
     return Intl.message(

@@ -222,12 +222,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       _showError(S.current.selectRoomType);
       return false;
     }
-    if (_adultsController.text.isEmpty ||
-        int.tryParse(_adultsController.text) == null ||
-        int.parse(_adultsController.text) <= 0) {
-      _showError(S.current.enterNumOfAdults);
-      return false;
-    }
+
     if (_checkInDate == null) {
       _showError(S.current.pleaseCheckinDate);
       return false;
@@ -565,6 +560,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [_englishNumberFormatter], // Apply formatter
+                            onChanged: (value) {
+                              setState(() {
+                                _childrenController.text = getLocalizedNumber(value);
+                              });
+                            },
                           ),
                         ),
                       ],

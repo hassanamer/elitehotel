@@ -347,6 +347,8 @@ class MessageLookup extends MessageLookupByLibrary {
             MessageLookupByLibrary.simpleMessage("مغادرة اليوم\nالجدد"),
         "todaysCheckOutsMobile":
             MessageLookupByLibrary.simpleMessage("مغادرة اليوم الجدد"),
+        "todayscheckoutt":
+            MessageLookupByLibrary.simpleMessage("تسجيل خروج اليوم"),
         "todayspaymentmethods":
             MessageLookupByLibrary.simpleMessage("سجل وسائل الدفع اليومية"),
         "totalAmount": MessageLookupByLibrary.simpleMessage("المبلغ الإجمالي"),

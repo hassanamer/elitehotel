@@ -25,6 +25,8 @@ String getLocalizedStatus(String status) {
         return 'تسجيل الخروج';
       case 'Upcoming':
         return 'قيد الانتظار';
+      case 'Today Checkouts':
+        return 'تسجيل خروج اليوم';
       default:
         return status; // Return the original status if no translation is available
     }
@@ -191,7 +193,9 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
         // Check if the selected status matches the reservation status
         bool matchesStatus = selectedStatus == S.current.all ||
             localizedStatus == selectedStatus ||
-            (selectedStatus == 'Today\'s Checkouts' && isTodayCheckout);
+            (selectedStatus == 'تسجيل خروج اليوم' && isTodayCheckout) || // Check for Arabic
+            (selectedStatus == 'Today Checkouts' && isTodayCheckout); // Check for English
+
 
         // Check if the search query matches any of the fields
         bool matchesSearch = (reservation['guestName']?.toString().toLowerCase().contains(searchQuery) ?? false) ||
@@ -265,7 +269,7 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                       DropdownMenuItem(value: S.current.checkedIn, child: Text(S.current.checkedIn)),
                       DropdownMenuItem(value: S.current.checkedOut, child: Text(S.current.checkedOut)),
                       DropdownMenuItem(value: S.current.upcoming, child: Text(S.current.upcoming)),
-                      DropdownMenuItem(value: 'Today\'s Checkouts', child: Text('Today\'s Checkouts')),
+                      DropdownMenuItem(value: S.current.todayscheckoutt, child: Text(S.current.todayscheckoutt)),
 
                     ],
                     onChanged: (value) {
@@ -281,7 +285,8 @@ class _ReservationListScreenState extends State<ReservationListScreen> {
                       ),
                     ),
                   ),
-                ),              ],
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             Expanded(
